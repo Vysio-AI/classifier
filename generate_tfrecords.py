@@ -50,6 +50,7 @@ def generate_lstm_tfrecords(tfrecord_destination=DATA_CONFIG["tfrecord_destinati
             "X": _float_list_feature(X.ravel().tolist()),
             "y_label": _bytes_feature(str.encode(y_label)),
             "X_labels": _bytes_feature(np.array(x_labels).tobytes()),
+            # "X_labels": _bytes_list_feature([str.encode(x) for x in x_labels]),
         }
         return tf.train.Example(features=tf.train.Features(feature=feature))
 
@@ -85,6 +86,65 @@ def generate_lstm_tfrecords(tfrecord_destination=DATA_CONFIG["tfrecord_destinati
         # Write tfrecord to memory
         with tf.io.TFRecordWriter(tfrecord_path) as writer:
             writer.write(tf_example.SerializeToString())
+
+        # Test the first tfrecord generation
+        if idx == 0:
+            _test_tfrecord_generation(
+                tfrecord_path, X, y, y_label, subject, side, x_labels
+            )
+
+
+def _test_tfrecord_generation(
+    tfrecord_path, X0, y0, y_label0, subject0, side0, X_labels0
+):
+    """Assert that the data stored in the tfrecords is consistent and
+    retrievable"""
+
+    def _parse_exercise_example(tfrecord):
+        """Get exercise data from tfrecord"""
+        feature_map = {
+            "n_steps": tf.io.FixedLenFeature([], tf.int64),
+            "n_features": tf.io.FixedLenFeature([], tf.int64),
+            "subject": tf.io.FixedLenFeature([], tf.int64),
+            "side": tf.io.FixedLenFeature([], tf.int64),
+            "y": tf.io.FixedLenFeature([], tf.int64),
+            "X": tf.io.VarLenFeature(float),
+            "y_label": tf.io.FixedLenFeature([], tf.string),
+            "X_labels": tf.io.FixedLenFeature([], tf.string),
+            # "X_labels": tf.io.VarLenFeature(tf.string),
+        }
+        parsed_example = tf.io.parse_single_example(tfrecord, feature_map)
+        X_flat = tf.sparse.to_dense(parsed_example["X"])
+        X = tf.reshape(
+            X_flat, [parsed_example["n_steps"], parsed_example["n_features"]]
+        )
+        # X_labels = tf.sparse.to_dense(parsed_example['X_labels'])
+        # X = tf.sparse.to_dense(parsed_example["X"])
+        # subject = tf.sparse.to_dense(parsed_example["subject"])
+        # X_labels = tf.sparse.to_dense(parsed_example["X_labels"])
+        # y_labels = tf.sparse.to_dense(parsed_example["y_labels"])
+        # decode_feat = tf.io.decode_raw(f)
+        return parsed_example
+        # return X, parsed_example['subject'], parsed_example['y'], parsed_example['y_label']
+        # return X_labels
+
+    print(f"[info] Testing: {tfrecord_path}")
+
+    raw_dataset = tf.data.TFRecordDataset(tfrecord_path)
+    parsed_dataset = raw_dataset.map(_parse_exercise_example)
+    print(f"[info] parsed_dataset:\n{parsed_dataset}")
+
+    for example in parsed_dataset.take(-1):
+        print("[info] example:\n{}".format(example))
+        assert y0 == example["y"].numpy()
+        assert X0.shape[0] == example["n_steps"].numpy()
+        assert X0.shape[1] == example["n_features"].numpy()
+        assert subject0 == example["subject"].numpy()
+        assert side0 == example["side"].numpy()
+        assert str.encode(y_label0) == example["y_label"].numpy()
+        X_labels = np.frombuffer(example["X_labels"].numpy(), dtype="<U2")
+        comparison = X_labels0 == X_labels
+        assert np.all(comparison)
 
 
 if __name__ == "__main__":
