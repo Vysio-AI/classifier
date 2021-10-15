@@ -14,7 +14,9 @@ with open("./config.yaml") as f:
     DATA_CONFIG = CONFIGURATIONS["data_generation"]
 
 
-def generate_seglearn_tfrecords(tfrecord_destination=DATA_CONFIG["tfrecord_destination"]):
+def generate_seglearn_tfrecords(
+    tfrecord_destination=DATA_CONFIG["tfrecord_destination"],
+):
     """Generate and store tfrecords for each subject-exercise time series
     data from the seglearn module"""
 
@@ -54,7 +56,6 @@ def generate_seglearn_tfrecords(tfrecord_destination=DATA_CONFIG["tfrecord_desti
         }
         return tf.train.Example(features=tf.train.Features(feature=feature))
 
-    # TODO: Iterate through exercises, generate tf examples and store records
     seglearn_watch_data = seglearn.datasets.load_watch()
     print(f"[info] seglearn_watch_data.keys() = {seglearn_watch_data.keys()}")
 
@@ -66,7 +67,8 @@ def generate_seglearn_tfrecords(tfrecord_destination=DATA_CONFIG["tfrecord_desti
     # Store each set of time-series as a tfrecord
     for idx in tqdm(range(number_of_examples)):
         # Extract relavent data to record
-        X = seglearn_watch_data["X"][idx]
+        # TODO: Check that float32 conversion is accurate
+        X = np.array(seglearn_watch_data["X"][idx],dtype='float32')
         y = seglearn_watch_data["y"][idx]
         y_label = seglearn_watch_data["y_labels"][y]
         subject = seglearn_watch_data["subject"][idx]
@@ -108,7 +110,7 @@ def _test_tfrecord_generation(
             "subject": tf.io.FixedLenFeature([], tf.int64),
             "side": tf.io.FixedLenFeature([], tf.int64),
             "y": tf.io.FixedLenFeature([], tf.int64),
-            "X": tf.io.VarLenFeature(float),
+            "X": tf.io.VarLenFeature(tf.float32),
             "y_label": tf.io.FixedLenFeature([], tf.string),
             "X_labels": tf.io.FixedLenFeature([], tf.string),
             # "X_labels": tf.io.VarLenFeature(tf.string),
@@ -143,8 +145,12 @@ def _test_tfrecord_generation(
         assert side0 == example["side"].numpy()
         assert str.encode(y_label0) == example["y_label"].numpy()
         X_labels = np.frombuffer(example["X_labels"].numpy(), dtype="<U2")
-        comparison = X_labels0 == X_labels
-        assert np.all(comparison)
+        assert np.all(X_labels0 == X_labels)
+
+        # Compare X data
+        X_flat = tf.sparse.to_dense(example["X"])
+        X = tf.reshape(X_flat, [example["n_steps"], example["n_features"]])
+        assert np.all(X0==X.numpy())
 
 
 if __name__ == "__main__":
