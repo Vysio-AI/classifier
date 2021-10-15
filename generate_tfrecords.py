@@ -14,7 +14,7 @@ with open("./config.yaml") as f:
     DATA_CONFIG = CONFIGURATIONS["data_generation"]
 
 
-def generate_lstm_tfrecords(tfrecord_destination=DATA_CONFIG["tfrecord_destination"]):
+def generate_seglearn_tfrecords(tfrecord_destination=DATA_CONFIG["tfrecord_destination"]):
     """Generate and store tfrecords for each subject-exercise time series
     data from the seglearn module"""
 
@@ -148,4 +148,4 @@ def _test_tfrecord_generation(
 
 
 if __name__ == "__main__":
-    generate_lstm_tfrecords()
+    generate_seglearn_tfrecords()
