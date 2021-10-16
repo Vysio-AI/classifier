@@ -20,4 +20,7 @@ data_segmentation:
     drop_remainder: True
 data_generation:
     tfrecord_destination: './data/tfrecords/'
+    tfrecord_windows_destination: './data/tfrecord_windows/'
+    window_size: 100
+    window_shift_length: 50
 
