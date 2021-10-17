@@ -7,6 +7,8 @@ import numpy as np
 import seglearn
 import tensorflow as tf
 import yaml
+from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OneHotEncoder
 from easydict import EasyDict
 from tqdm import tqdm
 
@@ -21,6 +23,7 @@ FEATURE_MAP = {
     "subject": tf.io.FixedLenFeature([], tf.int64),
     "side": tf.io.FixedLenFeature([], tf.int64),
     "y": tf.io.FixedLenFeature([], tf.int64),
+    "y_onehot": tf.io.VarLenFeature(tf.int64),
     "X": tf.io.VarLenFeature(tf.float32),
     "y_label": tf.io.FixedLenFeature([], tf.string),
     "x_labels": tf.io.FixedLenFeature([], tf.string),
@@ -51,9 +54,16 @@ def _int64_list_feature(value):
     """Returns an int64_list from a bool / enum / int / uint."""
     return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
 
+def _int_to_onehot(value):
+    """Convert an integer in the range [0,7] to an 7 element onehot array"""
+
 
 def _get_tfrecord_features(X, y, y_label, x_labels, side, subject):
     """Generate the features for the TFRecord file"""
+
+    # Generate the appropriate onehot label
+    y_onehot = [0,0,0,0,0,0,0]
+    y_onehot[y] = 1
 
     feature = {
         "n_steps": _int64_feature(X.shape[0]),
@@ -63,6 +73,7 @@ def _get_tfrecord_features(X, y, y_label, x_labels, side, subject):
         "y": _int64_feature(y),
         "X": _float_list_feature(X.ravel().tolist()),
         "y_label": _bytes_feature(str.encode(y_label)),
+        "y_onehot": _int64_list_feature(y_onehot),
         "x_labels": _bytes_feature(np.array(x_labels).tobytes()),
     }
     return tf.train.Example(features=tf.train.Features(feature=feature))
@@ -179,8 +190,8 @@ def generate_windowed_tfrecords(
             # Create the tfrecord file path
             tfrecord_path = os.path.join(
                 tfrecord_windows_destination,
-                "subject_{}_label_{}_window_{}.tfrecord".format(
-                    subject, y_label, count
+                "subject_{}_label_{}_sequence_{}_size_{}_shift_{}.tfrecord".format(
+                    subject, y_label, count, window_size, window_shift_length
                 ),
             )
 
@@ -218,10 +229,11 @@ def _test_tfrecord_generation(
     def _parse_exercise_example(tfrecord):
         """Get exercise data from tfrecord"""
         parsed_example = tf.io.parse_single_example(tfrecord, FEATURE_MAP)
-        X_flat = tf.sparse.to_dense(parsed_example["X"])
-        X = tf.reshape(
-            X_flat, [parsed_example["n_steps"], parsed_example["n_features"]]
-        )
+        # X_flat = tf.sparse.to_dense(parsed_example["X"])
+        # X = tf.reshape(
+        #     X_flat, [parsed_example["n_steps"], parsed_example["n_features"]]
+        # )
+        # X_flat = tf.sparse.to_dense(parsed_example["X"])
         # x_labels = tf.sparse.to_dense(parsed_example['x_labels'])
         # X = tf.sparse.to_dense(parsed_example["X"])
         # subject = tf.sparse.to_dense(parsed_example["subject"])
@@ -240,6 +252,11 @@ def _test_tfrecord_generation(
 
     for example in parsed_dataset.take(-1):
         # print("[info] example:\n{}".format(example))
+        # Generate the appropriate onehot label
+        y0_onehot = np.zeros(7, dtype='uint64')
+        y0_onehot[y0] = 1
+        y_onehot = tf.sparse.to_dense(example['y_onehot'])
+        assert np.all(y0_onehot == y_onehot.numpy())
         assert y0 == example["y"].numpy()
         assert X0.shape[0] == example["n_steps"].numpy()
         assert X0.shape[1] == example["n_features"].numpy()
@@ -330,5 +347,5 @@ def _test_tfrecord_generation(
 
 
 if __name__ == "__main__":
-    # generate_seglearn_tfrecords()
+    generate_seglearn_tfrecords()
     generate_windowed_tfrecords()
