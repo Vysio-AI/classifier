@@ -2,6 +2,7 @@ import os
 import pdb
 from datetime import datetime
 from glob import glob
+from enum import Enum
 
 import numpy as np
 import tensorflow as tf
@@ -14,6 +15,11 @@ from tensorflow.python.keras.wrappers.scikit_learn import KerasClassifier
 from crnn_model import get_crnn_model
 from generate_tfrecords import FEATURE_MAP
 
+class DataType(Enum):
+    TRAIN = "train"
+    VALIDATION = "validation"
+    TEST = "test"
+
 # Store configuration file data in global object
 with open("./config.yaml") as f:
     CONFIGS = EasyDict(yaml.load(f, yaml.FullLoader))
@@ -22,7 +28,7 @@ with open("./config.yaml") as f:
     EVALUATION_CONFIG = CONFIGS["evaluation"]
 
 
-def get_tfrecord_data(data_type="train"):
+def get_tfrecord_data(data_type: DataType=DataType.TRAIN):
     """Generate train/test/validation tf.data.Datasets"""
 
     def _parse_example_function(tfrecord_proto):
@@ -41,10 +47,10 @@ def get_tfrecord_data(data_type="train"):
         # return tf.data.dataset.zip((x_dataset, y_onehot_dataset))
         return (X_tensor, y_onehot_tensor)
 
-    assert data_type in ["train", "test", "validation"]
+    assert isinstance(data_type, DataType)
 
     # Grab the list of file patterns for relevant tfrecords
-    file_pattern = DATA_CONFIG[f"{data_type}_file_pattern"]
+    file_pattern = DATA_CONFIG[f"{data_type.value}_file_pattern"]
     assert isinstance(file_pattern, list)
     file_list = []
     # Generate a list of all the relevan tfrecord file paths
@@ -69,8 +75,8 @@ def get_tfrecord_data(data_type="train"):
 def _train_model():
     """Train the crnn model"""
     model = get_crnn_model()
-    train_tf_dataset = get_tfrecord_data("train")
-    validation_tf_dataset = get_tfrecord_data("validation")
+    train_tf_dataset = get_tfrecord_data(DataType.TRAIN)
+    validation_tf_dataset = get_tfrecord_data(DataType.VALIDATION)
 
     for item in train_tf_dataset.take(-1):
         print(item)

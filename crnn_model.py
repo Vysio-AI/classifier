@@ -21,7 +21,7 @@ def get_crnn_model():
             kernel_size=CRNN_CONFIG["conv_kernel_size"],
             padding=CRNN_CONFIG["conv_padding"],
             activation=CRNN_CONFIG["cnn_activations"],
-            input_shape=tuple(CRNN_CONFIG["input_shape"]),
+            input_shape=(None, CRNN_CONFIG["input_shape"]),
         )
     )
     model.add(layers.MaxPool1D(pool_size=CRNN_CONFIG["maxpooling_size"]))
