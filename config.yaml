@@ -2,25 +2,31 @@ crnn_config:
     input_shape:
     - 100
     - 6
-    output_shape: 7
-    l2_reg: 0.01
+    batch_size: 64
+    epochs: 10
+    output_shape: 1
+    l2_reg: 0.001
     cnn_activations: relu
-    lstm_units: 3
+    lstm_units: 100
     lstm_dropout: 0.1
     lstm_recurrent_dropout: 0.1
-    conv_kernel_size: 5
-    conv_filters: 3
+    conv_kernel_size: 7
+    conv_filters: 128
     conv_padding: valid
+    maxpooling_size: 2
     loss: categorical_crossentropy
     optimizer: adam
-data_segmentation:
-    length: 100
-    shift: 50
-    stride: 1
-    drop_remainder: True
 data_generation:
     tfrecord_destination: './data/tfrecords/'
     tfrecord_windows_destination: './data/tfrecord_windows/'
     window_size: 100
     window_shift_length: 50
+    train_file_pattern:
+    - './data/tfrecord_windows/subject_[1-7]_*.tfrecord'
+    validation_file_pattern:
+    - './data/tfrecord_windows/subject_[89]_*.tfrecord'
+    test_file_pattern:
+    - './data/tfrecord_windows/subject_10_*.tfrecord'
+evaluation:
+    log_dir: "./logs/"
 
