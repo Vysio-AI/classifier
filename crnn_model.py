@@ -39,15 +39,16 @@ def get_crnn_model():
             units=CRNN_CONFIG["lstm_units"],
             dropout=CRNN_CONFIG["lstm_dropout"],
             recurrent_dropout=CRNN_CONFIG["lstm_recurrent_dropout"],
+            return_sequences=True
         )
     )
-    # model.add(
-    #     layers.LSTM(
-    #         units=CRNN_CONFIG["lstm_units"],
-    #         dropout=CRNN_CONFIG["lstm_dropout"],
-    #         recurrent_dropout=CRNN_CONFIG["lstm_recurrent_dropout"],
-    #     )
-    # )
+    model.add(
+        layers.LSTM(
+            units=CRNN_CONFIG["lstm_units"],
+            dropout=CRNN_CONFIG["lstm_dropout"],
+            recurrent_dropout=CRNN_CONFIG["lstm_recurrent_dropout"],
+        )
+    )
     model.add(
         layers.Dense(
             units=CRNN_CONFIG["output_shape"],

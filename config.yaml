@@ -3,9 +3,9 @@ crnn_config:
     - 100
     - 6
     batch_size: 64
-    epochs: 10
-    output_shape: 1
-    l2_reg: 0.001
+    epochs: 15
+    output_shape: 7
+    l2_reg: 0.01
     cnn_activations: relu
     lstm_units: 100
     lstm_dropout: 0.1
@@ -20,11 +20,12 @@ data_generation:
     tfrecord_destination: './data/tfrecords/'
     tfrecord_windows_destination: './data/tfrecord_windows/'
     window_size: 100
-    window_shift_length: 50
+    window_shift_length: 10
     train_file_pattern:
-    - './data/tfrecord_windows/subject_[1-7]_*.tfrecord'
-    validation_file_pattern:
+    - './data/tfrecord_windows/subject_[1-5]_*.tfrecord'
     - './data/tfrecord_windows/subject_[89]_*.tfrecord'
+    validation_file_pattern:
+    - './data/tfrecord_windows/subject_[67]_*.tfrecord'
     test_file_pattern:
     - './data/tfrecord_windows/subject_10_*.tfrecord'
 evaluation:

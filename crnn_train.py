@@ -38,7 +38,8 @@ def get_tfrecord_data(data_type="train"):
         # Generate the appropriate onehot label
         y_onehot_tensor = tf.sparse.to_dense(example["y_onehot"])
         y_onehot_dataset = tf.data.Dataset.from_tensor_slices(y_onehot_tensor)
-        return tf.data.Dataset.zip((X_dataset, y_onehot_dataset))
+        # return tf.data.dataset.zip((x_dataset, y_onehot_dataset))
+        return (X_tensor, y_onehot_tensor)
 
     assert data_type in ["train", "test", "validation"]
 
@@ -50,10 +51,12 @@ def get_tfrecord_data(data_type="train"):
     for pattern in file_pattern:
         file_list.extend(glob(pattern, recursive=True))
 
+    print(f'[info] {len(file_list)} files in {data_type} dataset')
+
     # Generate dataset from each tfrecord
     dataset = tf.data.TFRecordDataset(file_list)
     dataset = (
-        dataset.interleave(
+        dataset.map(
             _parse_example_function, num_parallel_calls=tf.data.experimental.AUTOTUNE
         )
         .batch(CRNN_CONFIG["batch_size"])
@@ -68,6 +71,9 @@ def _train_model():
     model = get_crnn_model()
     train_tf_dataset = get_tfrecord_data("train")
     validation_tf_dataset = get_tfrecord_data("validation")
+
+    for item in train_tf_dataset.take(-1):
+        print(item)
 
     # Create the training tensorboard log directory
     timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
