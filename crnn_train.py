@@ -1,24 +1,36 @@
 import os
 import pdb
 from datetime import datetime
-from glob import glob
 from enum import Enum
+from glob import glob
 
 import numpy as np
-import tensorflow as tf
 import yaml
+import tensorflow as tf
 from easydict import EasyDict
 from tensorflow.python.keras import layers
 from tensorflow.python.keras.models import Sequential
 from tensorflow.python.keras.wrappers.scikit_learn import KerasClassifier
 
+# gpu_devices = tf.config.experimental.list_physical_devices('GPU')
+# for device in gpu_devices:
+#     tf.config.experimental.set_memory_growth(device, True)
+# gpus = tf.config.experimental.list_physical_devices("GPU")
+# if len(gpus) > 0:
+#     tf.config.experimental.set_virtual_device_configuration(
+#         gpus[0],
+#         [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=2 * 1024)],
+#     )
+
 from crnn_model import get_crnn_model
 from generate_tfrecords import FEATURE_MAP
+
 
 class DataType(Enum):
     TRAIN = "train"
     VALIDATION = "validation"
     TEST = "test"
+
 
 # Store configuration file data in global object
 with open("./config.yaml") as f:
@@ -28,7 +40,7 @@ with open("./config.yaml") as f:
     EVALUATION_CONFIG = CONFIGS["evaluation"]
 
 
-def get_tfrecord_data(data_type: DataType=DataType.TRAIN):
+def get_tfrecord_data(data_type: DataType = DataType.TRAIN):
     """Generate train/test/validation tf.data.Datasets"""
 
     def _parse_example_function(tfrecord_proto):
@@ -57,7 +69,7 @@ def get_tfrecord_data(data_type: DataType=DataType.TRAIN):
     for pattern in file_pattern:
         file_list.extend(glob(pattern, recursive=True))
 
-    print(f'[info] {len(file_list)} files in {data_type} dataset')
+    print(f"[info] {len(file_list)} files in {data_type} dataset")
 
     # Generate dataset from each tfrecord
     dataset = tf.data.TFRecordDataset(file_list)
@@ -65,6 +77,7 @@ def get_tfrecord_data(data_type: DataType=DataType.TRAIN):
         dataset.map(
             _parse_example_function, num_parallel_calls=tf.data.experimental.AUTOTUNE
         )
+        .shuffle(CRNN_CONFIG["shuffle_buffer_size"], reshuffle_each_iteration=True)
         .batch(CRNN_CONFIG["batch_size"])
         .prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
     )
@@ -78,21 +91,19 @@ def _train_model():
     train_tf_dataset = get_tfrecord_data(DataType.TRAIN)
     validation_tf_dataset = get_tfrecord_data(DataType.VALIDATION)
 
-    for item in train_tf_dataset.take(-1):
-        print(item)
-
     # Create the training tensorboard log directory
     timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     logs_path = os.path.join(EVALUATION_CONFIG["log_dir"], "logs_{}".format(timestamp))
 
     # Define the tensorboard callbacks
     callbacks = [
-        # tf.keras.callbacks.ModelCheckpoint(
-        #     os.path.join(logs_path, "checkpoint_{epoch}.tf"),
-        #     save_weights_only=True,
-        #     verbose=1,
-        #     save_freq=1,
-        # ),
+        tf.keras.callbacks.ModelCheckpoint(
+            filepath=os.path.join(logs_path, "checkpoint_{epoch}.tf"),
+            save_weights_only=True,
+            verbose=1,
+            save_freq='epoch',
+            save_best_only = True
+        ),
         # tf.keras.callbacks.TensorBoard(log_dir=logs_path, histogram_freq=1, profile_batch='20,40'),
         tf.keras.callbacks.TensorBoard(log_dir=logs_path, histogram_freq=1),
     ]

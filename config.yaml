@@ -1,13 +1,16 @@
 crnn_config:
     input_shape: 6
-    batch_size: 64
-    epochs: 15
+    batch_size: 128
+    epochs: 50
+    shuffle_buffer_size: 2000
     output_shape: 7
     l2_reg: 0.01
     cnn_activations: relu
     lstm_units: 100
     lstm_dropout: 0.1
     lstm_recurrent_dropout: 0.1
+    # lstm_dropout: 0.4
+    # lstm_recurrent_dropout: 0.4
     conv_kernel_size: 7
     conv_filters: 128
     conv_padding: valid
@@ -16,16 +19,24 @@ crnn_config:
     optimizer: adam
 data_generation:
     tfrecord_destination: './data/tfrecords/'
+    spar_dataset_path: './data/SPAR.npy'
     tfrecord_windows_destination: './data/tfrecord_windows/'
     window_size: 100
-    window_shift_length: 10
+    window_shift_length: 50
+    # train_file_pattern:
+    # - './data/tfrecord_windows/spar*S[1-9]_*.tfrecord'
+    # - './data/tfrecord_windows/spar*S1[0-4]_*.tfrecord'
+    # validation_file_pattern:
+    # - './data/tfrecord_windows/spar*S1[5-8]_*.tfrecord'
+    # test_file_pattern:
+    # - './data/tfrecord_windows/spar*S19_*.tfrecord'
+    # - './data/tfrecord_windows/spar*S20_*.tfrecord'
     train_file_pattern:
-    - './data/tfrecord_windows/subject_[1-5]_*.tfrecord'
-    - './data/tfrecord_windows/subject_[89]_*.tfrecord'
+    - './data/tfrecord_windows/spar*S[1-7]*_size_100_shift_50.tfrecord'
     validation_file_pattern:
-    - './data/tfrecord_windows/subject_[67]_*.tfrecord'
+    - './data/tfrecord_windows/spar*S[98]*_size_100_shift_50.tfrecord'
     test_file_pattern:
-    - './data/tfrecord_windows/subject_10_*.tfrecord'
+    - './data/tfrecord_windows/spar*S10*_size_100_shift_50.tfrecord'
 evaluation:
     log_dir: "./logs/"
 
