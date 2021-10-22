@@ -7,9 +7,8 @@ import numpy as np
 import seglearn
 import tensorflow as tf
 import yaml
-from sklearn.preprocessing import LabelEncoder
-from sklearn.preprocessing import OneHotEncoder
 from easydict import EasyDict
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from tqdm import tqdm
 
 # Store configuration file data in global object
@@ -54,6 +53,7 @@ def _int64_list_feature(value):
     """Returns an int64_list from a bool / enum / int / uint."""
     return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
 
+
 def _int_to_onehot(value):
     """Convert an integer in the range [0,7] to an 7 element onehot array"""
 
@@ -62,7 +62,7 @@ def _get_tfrecord_features(X, y, y_label, x_labels, side, subject):
     """Generate the features for the TFRecord file"""
 
     # Generate the appropriate onehot label
-    y_onehot = [0,0,0,0,0,0,0]
+    y_onehot = [0, 0, 0, 0, 0, 0, 0]
     y_onehot[y] = 1
 
     feature = {
@@ -81,12 +81,13 @@ def _get_tfrecord_features(X, y, y_label, x_labels, side, subject):
 
 def generate_seglearn_tfrecords(
     tfrecord_destination=DATA_CONFIG["tfrecord_destination"],
+    spar_dataset_path=DATA_CONFIG["spar_dataset_path"],
 ):
-    """Generate and store tfrecords for each subject-exercise time series
-    data from the seglearn module"""
+    """Generate and store tfrecords for each subject-exercise-side time series
+    data from the seglearn module
+    """
 
     seglearn_watch_data = seglearn.datasets.load_watch()
-    print(f"[info] seglearn_watch_data.keys() = {seglearn_watch_data.keys()}")
 
     # Create a directory for tfrecords
     os.makedirs(tfrecord_destination, exist_ok=True)
@@ -98,7 +99,7 @@ def generate_seglearn_tfrecords(
         # Extract relavent data to record
         # TODO: Check that float32 conversion is accurate
         X = np.array(seglearn_watch_data["X"][idx], dtype="float32")
-        y = seglearn_watch_data["y"][idx]
+        y = int(seglearn_watch_data["y"][idx])
         y_label = seglearn_watch_data["y_labels"][y]
         subject = seglearn_watch_data["subject"][idx]
         side = int(seglearn_watch_data["side"][idx])
@@ -111,7 +112,76 @@ def generate_seglearn_tfrecords(
 
         # Create the tfrecord file path
         tfrecord_path = os.path.join(
-            tfrecord_destination, "{}_{}.tfrecord".format(subject, y_label)
+            tfrecord_destination,
+            "seglearn_S{}_E{}_{}.tfrecord".format(subject, y, side),
+        )
+
+        # Write tfrecord to memory
+        with tf.io.TFRecordWriter(tfrecord_path) as writer:
+            writer.write(tf_example.SerializeToString())
+
+        # Test the first tfrecord generation
+        if idx == 0:
+            _test_tfrecord_generation(
+                tfrecord_path, X, y, y_label, subject, side, x_labels
+            )
+
+
+def generate_spar_tfrecords(
+    tfrecord_destination=DATA_CONFIG["tfrecord_destination"],
+    spar_dataset_path=DATA_CONFIG["spar_dataset_path"],
+):
+    """
+    Generate and store tfrecords for each subject-exercise-side time series
+    data from the SPAR (github.com/dmbee/SPAR-dataset)
+    Consists of 6-axis inertial sensor data (accelerometer and gyroscope)
+    collected using an Apple Watch 2 and Apple Watch 3 from 20 healthy
+    subjects (40 shoulders), as they perform 7 shoulder physiotherapy exercises.
+
+    The activities are:
+
+    1. Pendulum (PEN)
+    2. Abduction (ABD)
+    3. Forward elevation (FEL)
+    4. Internal rotation with resistance band (IR)
+    5. External rotation with resistance band (ER)
+    6. Lower trapezius row with resistance band (TRAP)
+    7. Bent over row with 3 lb dumbell (ROW)
+    The subjects repeat each activity 20 times on each side (left and right).
+
+    The data is available in csv format in the csv folder. Each file represents
+    a single activity being repeated 20 times. The files are named to convey:
+
+    S1_E0_R
+    indicated subject 1, activity 0 (PEN), right side
+    """
+
+    spar_dataset = np.load(spar_dataset_path, allow_pickle=True).item()
+
+    # Create a directory for tfrecords
+    os.makedirs(tfrecord_destination, exist_ok=True)
+
+    number_of_examples = len(spar_dataset["X"])
+
+    # Store each set of time-series as a tfrecord
+    for idx in tqdm(range(number_of_examples)):
+        # Extract relavent data to record
+        # TODO: Check that float32 conversion is accurate
+        X = np.array(spar_dataset["X"][idx], dtype="float32")
+        y = int(spar_dataset["y"][idx])
+        y_label = spar_dataset["y_labels"][y]
+        subject = spar_dataset["subject"][idx]
+        side = int(spar_dataset["side"][idx])
+        x_labels = spar_dataset["X_labels"]
+
+        # Generate tfrecord example
+        tf_example = _get_tfrecord_features(
+            X=X, y=y, y_label=y_label, subject=subject, side=side, x_labels=x_labels
+        )
+
+        # Create the tfrecord file path
+        tfrecord_path = os.path.join(
+            tfrecord_destination, "spar_S{}_E{}_{}.tfrecord".format(subject, y, side)
         )
 
         # Write tfrecord to memory
@@ -137,10 +207,11 @@ def generate_windowed_tfrecords(
     # Grab a list of all the tfrecords from the source directory
     file_list = list(tfrecord_source.glob("**/*.tfrecord"))
     # Checks if destination folder already exists since it will
-    os.makedirs(tfrecord_windows_destination, exist_ok=False)
+    os.makedirs(tfrecord_windows_destination, exist_ok=True)
 
     # Process each timeseries for each exercise performed by each subject
     for tfrecord_path in tqdm(file_list):
+        tfrecord_path_stem = tfrecord_path.stem
         tfrecord_path = str(tfrecord_path)
         # Extract data from the tfrecord
         tfrecord_dataset = tf.data.TFRecordDataset(tfrecord_path)
@@ -190,8 +261,8 @@ def generate_windowed_tfrecords(
             # Create the tfrecord file path
             tfrecord_path = os.path.join(
                 tfrecord_windows_destination,
-                "subject_{}_label_{}_sequence_{}_size_{}_shift_{}.tfrecord".format(
-                    subject, y_label, count, window_size, window_shift_length
+                "{}_sequence_{}_size_{}_shift_{}.tfrecord".format(
+                    tfrecord_path_stem, count, window_size, window_shift_length
                 ),
             )
 
@@ -253,9 +324,9 @@ def _test_tfrecord_generation(
     for example in parsed_dataset.take(-1):
         # print("[info] example:\n{}".format(example))
         # Generate the appropriate onehot label
-        y0_onehot = np.zeros(7, dtype='uint64')
+        y0_onehot = np.zeros(7, dtype="uint64")
         y0_onehot[y0] = 1
-        y_onehot = tf.sparse.to_dense(example['y_onehot'])
+        y_onehot = tf.sparse.to_dense(example["y_onehot"])
         assert np.all(y0_onehot == y_onehot.numpy())
         assert y0 == example["y"].numpy()
         assert X0.shape[0] == example["n_steps"].numpy()
@@ -271,81 +342,7 @@ def _test_tfrecord_generation(
         X = tf.reshape(X_flat, [example["n_steps"], example["n_features"]])
         assert np.all(X0 == X.numpy())
 
-
-# def _test_tfrecord_windowing(
-#     tfrecord_path_1="./data/tfrecords/10_ABD.tfrecord",
-#     tfrecord_path_2="./data/tfrecords/10_ER.tfrecord",
-# ):
-#     def _parse_exercise_example(tfrecord):
-#         """Get exercise data from tfrecord"""
-#         parsed_example = tf.io.parse_single_example(tfrecord, FEATURE_MAP)
-#         X_flat = tf.sparse.to_dense(parsed_example["X"])
-#         X = tf.reshape(
-#             X_flat, [parsed_example["n_steps"], parsed_example["n_features"]]
-#         )
-#         # x_labels = tf.sparse.to_dense(parsed_example['x_labels'])
-#         # X = tf.sparse.to_dense(parsed_example["X"])
-#         # subject = tf.sparse.to_dense(parsed_example["subject"])
-#         # x_labels = tf.sparse.to_dense(parsed_example["x_labels"])
-#         # y_labels = tf.sparse.to_dense(parsed_example["y_labels"])
-#         # decode_feat = tf.io.decode_raw(f)
-#         # if 1:
-#         #     # if using flat_map
-#         #     X_dataset = tf.data.Dataset.from_tensors(X)
-#         #     return tf.data.Dataset.zip((X_dataset, X_dataset))
-#         # else:
-#         #     return (X, X)
-#         X_window =  tf.data.Dataset.from_tensors(X).window(100)
-#         # X = tf.data.Dataset.from_tensors(X)
-#         return X_window
-#         # return X, parsed_example['subject'], parsed_example['y'], parsed_example['y_label']
-#         # return x_labels
-
-#     SIZE = 100
-#     SHIFT = 50
-#     print(f"[info] Testing: {tfrecord_path_1}")
-#     print(f"[info] Testing: {tfrecord_path_2}")
-
-#     raw_dataset = tf.data.TFRecordDataset([tfrecord_path_1, tfrecord_path_2])
-#     parsed_dataset = raw_dataset.map(_parse_exercise_example)
-#     # parsed_dataset = raw_dataset.map(_parse_exercise_example).map(lambda x: x.window(2))
-#     # parsed_dataset = raw_dataset.map(_parse_exercise_example)
-#     # pdb.set_trace()
-#     for y in parsed_dataset:
-#         # pdb.set_trace()
-#         # print(y.numpy().shape)
-#         for item in y:
-#             print(list(item.as_numpy_iterator()))
-#         #     for x in item:
-#         #         pdb.set_trace()
-#         #         print(x.numpy().shape)
-#     exit(0)
-#     # parsed_dataset = (
-#     #     raw_dataset.map(_parse_exercise_example)
-#     #     .flat_map(lambda x: x.window(size=SIZE, shift=SHIFT))
-#     #     # .unbatch()
-#     # )
-#     # parsed_dataset = raw_dataset.map(_parse_exercise_example).window(
-#     #     size=SIZE, shift=SHIFT
-#     # )
-
-#     dataset = tf.data.Dataset.from_tensor_slices(([1, 2, 3, 4, 5], [6, 7, 8, 9, 10]))
-#     dataset = dataset.window(2)
-
-#     for window in dataset:
-#         a = list(window[0].as_numpy_iterator())
-#         b = list(window[1].as_numpy_iterator())
-#         print(a, b)
-
-#     print(f"[info] parsed_dataset:\n{parsed_dataset}")
-
-#     for example in parsed_dataset.take(-1):
-#         # print("[info] example:\n{}".format(example))
-#         pdb.set_trace()
-#         print("[info] dimensions_0: {}".format(example[0].shape))
-#         print("[info] dimensions_1: {}".format(example[1].shape))
-
-
 if __name__ == "__main__":
-    generate_seglearn_tfrecords()
+    # generate_seglearn_tfrecords()
+    # generate_spar_tfrecords()
     generate_windowed_tfrecords()
