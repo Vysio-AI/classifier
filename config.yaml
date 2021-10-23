@@ -37,6 +37,10 @@ data_generation:
     - './data/tfrecord_windows/spar*S[98]*_size_100_shift_50.tfrecord'
     test_file_pattern:
     - './data/tfrecord_windows/spar*S10*_size_100_shift_50.tfrecord'
+data_augmentation:
+    cropping_min_length: 0.25
+    jitter_lb: -0.5
+    jitter_ub: 0.5
 evaluation:
     log_dir: "./logs/"
 
