@@ -1,7 +1,9 @@
 crnn_config:
-    input_shape: 6
+    input_shape:
+    - 100
+    - 6
     batch_size: 128
-    epochs: 50
+    epochs: 30
     shuffle_buffer_size: 2000
     output_shape: 7
     l2_reg: 0.01
@@ -32,11 +34,19 @@ data_generation:
     # - './data/tfrecord_windows/spar*S19_*.tfrecord'
     # - './data/tfrecord_windows/spar*S20_*.tfrecord'
     train_file_pattern:
-    - './data/tfrecord_windows/spar*S[1-7]*_size_100_shift_50.tfrecord'
+    - './data/tfrecord_windows/seglearn*S[1-8]*_size_100_shift_50.tfrecord'
     validation_file_pattern:
-    - './data/tfrecord_windows/spar*S[98]*_size_100_shift_50.tfrecord'
+    - './data/tfrecord_windows/seglearn*S9*_size_100_shift_50.tfrecord'
+    - './data/tfrecord_windows/seglearn*S10*_size_100_shift_50.tfrecord'
     test_file_pattern:
-    - './data/tfrecord_windows/spar*S10*_size_100_shift_50.tfrecord'
+    - './data/tfrecord_windows/seglearn*S10*_size_100_shift_50.tfrecord'
+    # train_file_pattern:
+    # - './data/tfrecord_windows/spar*S[1-9]*_size_100_shift_50.tfrecord'
+    # - './data/tfrecord_windows/spar*S1[0-6]*_size_100_shift_50.tfrecord'
+    # validation_file_pattern:
+    # - './data/tfrecord_windows/spar*S1[7-9]*_size_100_shift_50.tfrecord'
+    # - './data/tfrecord_windows/spar*S20*_size_100_shift_50.tfrecord'
 evaluation:
     log_dir: "./logs/"
+    weights_file: "./logs/logs_2021_10_29_00_04_36/checkpoint_28.tf"
 
