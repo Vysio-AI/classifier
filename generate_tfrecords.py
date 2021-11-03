@@ -343,6 +343,6 @@ def _test_tfrecord_generation(
         assert np.all(X0 == X.numpy())
 
 if __name__ == "__main__":
-    # generate_seglearn_tfrecords()
-    # generate_spar_tfrecords()
+    generate_seglearn_tfrecords()
+    generate_spar_tfrecords()
     generate_windowed_tfrecords()

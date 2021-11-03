@@ -33,19 +33,19 @@ data_generation:
     # test_file_pattern:
     # - './data/tfrecord_windows/spar*S19_*.tfrecord'
     # - './data/tfrecord_windows/spar*S20_*.tfrecord'
-    train_file_pattern:
-    - './data/tfrecord_windows/seglearn*S[1-8]*_size_100_shift_50.tfrecord'
-    validation_file_pattern:
-    - './data/tfrecord_windows/seglearn*S9*_size_100_shift_50.tfrecord'
-    - './data/tfrecord_windows/seglearn*S10*_size_100_shift_50.tfrecord'
-    test_file_pattern:
-    - './data/tfrecord_windows/seglearn*S10*_size_100_shift_50.tfrecord'
     # train_file_pattern:
-    # - './data/tfrecord_windows/spar*S[1-9]*_size_100_shift_50.tfrecord'
-    # - './data/tfrecord_windows/spar*S1[0-6]*_size_100_shift_50.tfrecord'
+    # - './data/tfrecord_windows/seglearn*S[1-8]*_size_100_shift_50.tfrecord'
     # validation_file_pattern:
-    # - './data/tfrecord_windows/spar*S1[7-9]*_size_100_shift_50.tfrecord'
-    # - './data/tfrecord_windows/spar*S20*_size_100_shift_50.tfrecord'
+    # - './data/tfrecord_windows/seglearn*S9*_size_100_shift_50.tfrecord'
+    # - './data/tfrecord_windows/seglearn*S10*_size_100_shift_50.tfrecord'
+    # test_file_pattern:
+    # - './data/tfrecord_windows/seglearn*S10*_size_100_shift_50.tfrecord'
+    train_file_pattern:
+    - './data/tfrecord_windows/spar*S[1-9]*_size_100_shift_50.tfrecord'
+    - './data/tfrecord_windows/spar*S1[0-6]*_size_100_shift_50.tfrecord'
+    validation_file_pattern:
+    - './data/tfrecord_windows/spar*S1[7-9]*_size_100_shift_50.tfrecord'
+    - './data/tfrecord_windows/spar*S20*_size_100_shift_50.tfrecord'
 evaluation:
     log_dir: "./logs/"
     weights_file: "./logs/logs_2021_10_29_00_04_36/checkpoint_28.tf"
