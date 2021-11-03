@@ -1,0 +1,52 @@
+crnn_config:
+    input_shape:
+    - 100
+    - 6
+    batch_size: 128
+    epochs: 30
+    shuffle_buffer_size: 2000
+    output_shape: 7
+    l2_reg: 0.01
+    cnn_activations: relu
+    lstm_units: 100
+    lstm_dropout: 0.1
+    lstm_recurrent_dropout: 0.1
+    # lstm_dropout: 0.4
+    # lstm_recurrent_dropout: 0.4
+    conv_kernel_size: 7
+    conv_filters: 128
+    conv_padding: valid
+    maxpooling_size: 2
+    loss: categorical_crossentropy
+    optimizer: adam
+data_generation:
+    tfrecord_destination: './data/tfrecords/'
+    spar_dataset_path: './data/SPAR.npy'
+    tfrecord_windows_destination: './data/tfrecord_windows/'
+    window_size: 100
+    window_shift_length: 50
+    # train_file_pattern:
+    # - './data/tfrecord_windows/spar*S[1-9]_*.tfrecord'
+    # - './data/tfrecord_windows/spar*S1[0-4]_*.tfrecord'
+    # validation_file_pattern:
+    # - './data/tfrecord_windows/spar*S1[5-8]_*.tfrecord'
+    # test_file_pattern:
+    # - './data/tfrecord_windows/spar*S19_*.tfrecord'
+    # - './data/tfrecord_windows/spar*S20_*.tfrecord'
+    # train_file_pattern:
+    # - './data/tfrecord_windows/seglearn*S[1-8]*_size_100_shift_50.tfrecord'
+    # validation_file_pattern:
+    # - './data/tfrecord_windows/seglearn*S9*_size_100_shift_50.tfrecord'
+    # - './data/tfrecord_windows/seglearn*S10*_size_100_shift_50.tfrecord'
+    # test_file_pattern:
+    # - './data/tfrecord_windows/seglearn*S10*_size_100_shift_50.tfrecord'
+    train_file_pattern:
+    - './data/tfrecord_windows/spar*S[1-9]*_size_100_shift_50.tfrecord'
+    - './data/tfrecord_windows/spar*S1[0-6]*_size_100_shift_50.tfrecord'
+    validation_file_pattern:
+    - './data/tfrecord_windows/spar*S1[7-9]*_size_100_shift_50.tfrecord'
+    - './data/tfrecord_windows/spar*S20*_size_100_shift_50.tfrecord'
+evaluation:
+    log_dir: "./logs/"
+    weights_file: "./logs/logs_2021_10_29_00_04_36/checkpoint_28.tf"
+
