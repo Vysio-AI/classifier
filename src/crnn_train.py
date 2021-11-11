@@ -1,29 +1,15 @@
 import os
-import pdb
 from datetime import datetime
 from enum import Enum
 from glob import glob
 
 import numpy as np
-import yaml
 import tensorflow as tf
+import yaml
 from easydict import EasyDict
-from tensorflow.python.keras import layers
-from tensorflow.python.keras.models import Sequential
-from tensorflow.python.keras.wrappers.scikit_learn import KerasClassifier
-
-# gpu_devices = tf.config.experimental.list_physical_devices('GPU')
-# for device in gpu_devices:
-#     tf.config.experimental.set_memory_growth(device, True)
-# gpus = tf.config.experimental.list_physical_devices("GPU")
-# if len(gpus) > 0:
-#     tf.config.experimental.set_virtual_device_configuration(
-#         gpus[0],
-#         [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=2 * 1024)],
-#     )
 
 from crnn_model import get_crnn_model
-from generate_tfrecords import FEATURE_MAP
+from preprocessing import FEATURE_MAP, generate_window_tfrecords
 
 
 class DataType(Enum):
@@ -61,18 +47,21 @@ def get_tfrecord_data(data_type: DataType = DataType.TRAIN):
 
     assert isinstance(data_type, DataType)
 
-    # Grab the list of file patterns for relevant tfrecords
-    file_pattern = DATA_CONFIG[f"{data_type.value}_file_pattern"]
-    assert isinstance(file_pattern, list)
-    file_list = []
-    # Generate a list of all the relevan tfrecord file paths
-    for pattern in file_pattern:
-        file_list.extend(glob(pattern, recursive=True))
+    # Grab the list of file patterns for relevant csv files
+    csv_file_patterns = DATA_CONFIG[f"{data_type.value}_csv_file_pattern"]
+    assert isinstance(csv_file_patterns, list)
+    csv_file_list = []
+    # Generate a list of all matching csv file paths
+    for pattern in csv_file_patterns:
+        csv_file_list.extend(glob(pattern, recursive=True))
 
-    print(f"[info] {len(file_list)} files in {data_type} dataset")
+    csv_path_list_str = "\n".join(csv_file_list)
+    print(f"[info] sourcing {data_type} csv: {len(csv_file_list)}")
+    tfrecord_path_list = generate_window_tfrecords(csv_file_list)
+    print(f"[info] number of windows created: {len(tfrecord_path_list)}")
 
     # Generate dataset from each tfrecord
-    dataset = tf.data.TFRecordDataset(file_list)
+    dataset = tf.data.TFRecordDataset(tfrecord_path_list)
     dataset = (
         dataset.map(
             _parse_example_function, num_parallel_calls=tf.data.experimental.AUTOTUNE
@@ -85,7 +74,7 @@ def get_tfrecord_data(data_type: DataType = DataType.TRAIN):
     return dataset
 
 
-def _train_model():
+def train_model():
     """Train the crnn model"""
     model = get_crnn_model()
     train_tf_dataset = get_tfrecord_data(DataType.TRAIN)
@@ -101,8 +90,8 @@ def _train_model():
             filepath=os.path.join(logs_path, "checkpoint_{epoch}.tf"),
             save_weights_only=True,
             verbose=1,
-            save_freq='epoch',
-            save_best_only = True
+            save_freq="epoch",
+            save_best_only=True,
         ),
         # tf.keras.callbacks.TensorBoard(log_dir=logs_path, histogram_freq=1, profile_batch='20,40'),
         tf.keras.callbacks.TensorBoard(log_dir=logs_path, histogram_freq=1),
@@ -124,4 +113,4 @@ if __name__ == "__main__":
     seed = 0
     np.random.seed(seed)
     tf.random.set_seed(seed)
-    _train_model()
+    train_model()
