@@ -79,54 +79,6 @@ def _get_tfrecord_features(X, y, y_label, x_labels, side, subject):
     return tf.train.Example(features=tf.train.Features(feature=feature))
 
 
-def generate_seglearn_tfrecords(
-    tfrecord_destination=DATA_CONFIG["tfrecord_destination"],
-    spar_dataset_path=DATA_CONFIG["spar_dataset_path"],
-):
-    """Generate and store tfrecords for each subject-exercise-side time series
-    data from the seglearn module
-    """
-
-    seglearn_watch_data = seglearn.datasets.load_watch()
-
-    # Create a directory for tfrecords
-    os.makedirs(tfrecord_destination, exist_ok=True)
-
-    number_of_examples = len(seglearn_watch_data["X"])
-
-    # Store each set of time-series as a tfrecord
-    for idx in tqdm(range(number_of_examples)):
-        # Extract relavent data to record
-        # TODO: Check that float32 conversion is accurate
-        X = np.array(seglearn_watch_data["X"][idx], dtype="float32")
-        y = int(seglearn_watch_data["y"][idx])
-        y_label = seglearn_watch_data["y_labels"][y]
-        subject = seglearn_watch_data["subject"][idx]
-        side = int(seglearn_watch_data["side"][idx])
-        x_labels = seglearn_watch_data["X_labels"]
-
-        # Generate tfrecord example
-        tf_example = _get_tfrecord_features(
-            X=X, y=y, y_label=y_label, subject=subject, side=side, x_labels=x_labels
-        )
-
-        # Create the tfrecord file path
-        tfrecord_path = os.path.join(
-            tfrecord_destination,
-            "seglearn_S{}_E{}_{}.tfrecord".format(subject, y, side),
-        )
-
-        # Write tfrecord to memory
-        with tf.io.TFRecordWriter(tfrecord_path) as writer:
-            writer.write(tf_example.SerializeToString())
-
-        # Test the first tfrecord generation
-        if idx == 0:
-            _test_tfrecord_generation(
-                tfrecord_path, X, y, y_label, subject, side, x_labels
-            )
-
-
 def generate_spar_tfrecords(
     tfrecord_destination=DATA_CONFIG["tfrecord_destination"],
     spar_dataset_path=DATA_CONFIG["spar_dataset_path"],
@@ -300,22 +252,7 @@ def _test_tfrecord_generation(
     def _parse_exercise_example(tfrecord):
         """Get exercise data from tfrecord"""
         parsed_example = tf.io.parse_single_example(tfrecord, FEATURE_MAP)
-        # X_flat = tf.sparse.to_dense(parsed_example["X"])
-        # X = tf.reshape(
-        #     X_flat, [parsed_example["n_steps"], parsed_example["n_features"]]
-        # )
-        # X_flat = tf.sparse.to_dense(parsed_example["X"])
-        # x_labels = tf.sparse.to_dense(parsed_example['x_labels'])
-        # X = tf.sparse.to_dense(parsed_example["X"])
-        # subject = tf.sparse.to_dense(parsed_example["subject"])
-        # x_labels = tf.sparse.to_dense(parsed_example["x_labels"])
-        # y_labels = tf.sparse.to_dense(parsed_example["y_labels"])
-        # decode_feat = tf.io.decode_raw(f)
         return parsed_example
-        # return X, parsed_example['subject'], parsed_example['y'], parsed_example['y_label']
-        # return x_labels
-
-    # print(f"[info] Testing: {tfrecord_path}")
 
     raw_dataset = tf.data.TFRecordDataset(tfrecord_path)
     parsed_dataset = raw_dataset.map(_parse_exercise_example)
@@ -342,7 +279,7 @@ def _test_tfrecord_generation(
         X = tf.reshape(X_flat, [example["n_steps"], example["n_features"]])
         assert np.all(X0 == X.numpy())
 
+
 if __name__ == "__main__":
-    generate_seglearn_tfrecords()
     generate_spar_tfrecords()
     generate_windowed_tfrecords()
