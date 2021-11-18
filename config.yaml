@@ -3,7 +3,7 @@ crnn_config:
     - 100
     - 6
     batch_size: 128
-    epochs: 30
+    epochs: 10
     shuffle_buffer_size: 2000
     output_shape: 7
     l2_reg: 0.01
@@ -28,6 +28,12 @@ data_generation:
     - './datasets/spar_csv/S1[7-9]_*.csv'
     - './datasets/spar_csv/S20_*.csv'
 evaluation:
-    log_dir: "./logs/"
-    weights_file: "./logs/logs_2021_10_29_00_04_36/checkpoint_28.tf"
+    log_dir: "./reports/logs/"
+    weights_file: "./reports/logs/logs_2021_10_29_00_04_36/checkpoint_28.tf"
+visualization:
+    view_columns: False
+    view_trajectories: True
+    csv_file_patterns: 
+    - './datasets/spar_csv/S10_E[0-6]_L.csv'
+    num_view_steps: 1000
 
