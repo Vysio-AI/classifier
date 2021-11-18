@@ -3,9 +3,8 @@ crnn_config:
     - 100
     - 6
     batch_size: 128
-    epochs: 10
+    epochs: 5
     shuffle_buffer_size: 2000
-    output_shape: 7
     l2_reg: 0.01
     cnn_activations: relu
     lstm_units: 100
@@ -17,6 +16,14 @@ crnn_config:
     maxpooling_size: 2
     loss: categorical_crossentropy
     optimizer: adam
+    class_names:
+    - "PEL"
+    - "ABD"
+    - "FEL"
+    - "IR"
+    - "ER"
+    - "TRAP"
+    - "ROW"
 data_generation:
     tfrecord_windows_destination: './tmp/tfrecord_windows/'
     window_size: 100
@@ -29,7 +36,7 @@ data_generation:
     - './datasets/spar_csv/S20_*.csv'
 evaluation:
     log_dir: "./reports/logs/"
-    weights_file: "./reports/logs/logs_2021_10_29_00_04_36/checkpoint_28.tf"
+    weights_file: "reports/logs/logs_2021_11_18_00_14_40/checkpoint_12.tf"
 visualization:
     view_columns: False
     view_trajectories: True

@@ -51,7 +51,7 @@ def get_crnn_model():
     )
     model.add(
         layers.Dense(
-            units=CRNN_CONFIG["output_shape"],
+            units=len(CRNN_CONFIG["class_names"]),
             activation="softmax",
             kernel_regularizer=tf.keras.regularizers.l2(l2=CRNN_CONFIG["l2_reg"]),
         )

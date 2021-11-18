@@ -4,12 +4,14 @@ from enum import Enum
 from glob import glob
 
 import numpy as np
+import sklearn.metrics
 import tensorflow as tf
 import yaml
 from easydict import EasyDict
 
-from crnn_model import get_crnn_model
-from preprocessing import FEATURE_MAP, generate_window_tfrecords
+from model import get_crnn_model
+from utils import (FEATURE_MAP, generate_window_tfrecords,
+                   plot_confusion_matrix, plot_to_image)
 
 
 class DataType(Enum):
@@ -79,10 +81,40 @@ def train_model():
     model = get_crnn_model()
     train_tf_dataset = get_tfrecord_data(DataType.TRAIN)
     validation_tf_dataset = get_tfrecord_data(DataType.VALIDATION)
+    # Load the validation dataset in memory
+    validation_Y = []
+    validation_X = []
+    for item in validation_tf_dataset.unbatch().take(-1):
+        validation_X.append(item[0].numpy())
+        validation_Y.append(item[1].numpy())
+
+    validation_X = np.array(validation_X[:])
+    validation_Y = np.array(validation_Y[:])
 
     # Create the training tensorboard log directory
     timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     logs_path = os.path.join(EVALUATION_CONFIG["log_dir"], "logs_{}".format(timestamp))
+
+    # Create a file writer to log confusion matrices
+    file_writer_confusion_matrix = tf.summary.create_file_writer(
+        logs_path + "/confusion_matrix"
+    )
+
+    def log_confusion_matrix(epoch, logs):
+        # Use the model to predict the values from the validation dataset.
+        pred_Y_softmax = model.predict(validation_X, batch_size=1)
+        pred_Y_argmax = np.argmax(pred_Y_softmax, axis=-1)
+        val_Y_argmax = np.argmax(validation_Y, axis=-1)
+
+        # Calculate the confusion matrix.
+        cm = sklearn.metrics.confusion_matrix(val_Y_argmax, pred_Y_argmax)
+        # Log the confusion matrix as an image summary.
+        figure = plot_confusion_matrix(cm, class_names=CRNN_CONFIG["class_names"])
+        cm_image = plot_to_image(figure)
+
+        # Log the confusion matrix as an image summary.
+        with file_writer_confusion_matrix.as_default():
+            tf.summary.image("Confusion Matrix", cm_image, step=epoch)
 
     # Define the tensorboard callbacks
     callbacks = [
@@ -93,6 +125,7 @@ def train_model():
             save_freq="epoch",
             save_best_only=True,
         ),
+        tf.keras.callbacks.LambdaCallback(on_epoch_end=log_confusion_matrix),
         # tf.keras.callbacks.TensorBoard(log_dir=logs_path, histogram_freq=1, profile_batch='20,40'),
         tf.keras.callbacks.TensorBoard(log_dir=logs_path, histogram_freq=1),
     ]
