@@ -114,7 +114,7 @@ def train_model():
 
         # Log the confusion matrix as an image summary.
         with file_writer_confusion_matrix.as_default():
-            tf.summary.image("Confusion Matrix", cm_image, step=epoch)
+            tf.summary.image("Confusion Matrix: Validation", cm_image, step=epoch)
 
     # Define the tensorboard callbacks
     callbacks = [
