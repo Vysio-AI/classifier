@@ -3,7 +3,7 @@ crnn_config:
     - 100
     - 6
     batch_size: 128
-    epochs: 5
+    epochs: 30
     shuffle_buffer_size: 2000
     l2_reg: 0.01
     cnn_activations: relu
@@ -34,6 +34,14 @@ data_generation:
     validation_csv_file_pattern:
     - './datasets/spar_csv/S1[7-9]_*.csv'
     - './datasets/spar_csv/S20_*.csv'
+    class_names:
+    - "PEL"
+    - "ABD"
+    - "FEL"
+    - "IR"
+    - "ER"
+    - "TRAP"
+    - "ROW"
 evaluation:
     log_dir: "./reports/logs/"
     weights_file: "reports/logs/logs_2021_11_18_00_14_40/checkpoint_12.tf"

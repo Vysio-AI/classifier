@@ -55,13 +55,13 @@ def _int64_list_feature(value):
 def _get_tfrecord_features(X, y):
 
     # Generate the appropriate onehot label
-    y_onehot = [0, 0, 0, 0, 0, 0, 0]
+    y_onehot = np.zeros(len(DATA_CONFIG["class_names"]), int)
     y_onehot[y] = 1
 
     feature = {
         "n_steps": _int64_feature(X.shape[0]),
         "n_features": _int64_feature(X.shape[1]),
-        "y_onehot": _int64_list_feature(y_onehot),
+        "y_onehot": _int64_list_feature(y_onehot.tolist()),
         "X": _float_list_feature(X.ravel().tolist()),
     }
     return tf.train.Example(features=tf.train.Features(feature=feature))
