@@ -51,4 +51,13 @@ visualization:
     csv_file_patterns: 
     - './datasets/spar_csv/S10_E[0-6]_L.csv'
     num_view_steps: 1000
+demo_input:
+    none_class_val: 69
+    action_duration: 500 # 10s * 50Hz
+    overlap_length: 100 # 2 * 50Hz
+    action_sequences:
+    - "./datasets/spar_csv/S10_E0_L.csv" 
+    - "./datasets/spar_csv/S10_E1_L.csv" 
+    - "./datasets/spar_csv/S10_E2_L.csv" 
+    - "./datasets/spar_csv/S10_E3_L.csv" 
 
