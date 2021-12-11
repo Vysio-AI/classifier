@@ -1,8 +1,9 @@
-import pdb
 import math
 import os
 import pathlib
+import pdb
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -31,7 +32,7 @@ def generate_demo_input(action_sequence_path_list=DEMO_INPUT["action_sequences"]
     num_actions = len(action_sequence_path_list)
     num_steps = num_actions * action_duration - overlap_length * (num_actions - 1)
     input_sequence_X = np.zeros((num_steps, 6))
-    input_sequence_Y = np.zeros(num_steps)
+    input_sequence_Y = np.zeros(num_steps, dtype=int)
 
     print(f"[info] input_sequence_X.shape: {input_sequence_X.shape}")
 
@@ -70,19 +71,40 @@ def generate_demo_input(action_sequence_path_list=DEMO_INPUT["action_sequences"]
         input_sequence_X[start_index:overlap_end] += csv_data[:overlap_length]
         # TODO if start don't use non class val
         input_sequence_Y[start_index:overlap_end] = [none_class_val] * overlap_length
-        
+
         if start_index == 0:
             input_sequence_Y[start_index:overlap_end] = [y_class] * overlap_length
-
 
         start_index += action_duration - overlap_length
 
     unique_classes, class_counts = np.unique(input_sequence_Y, return_counts=True)
     unique_classes = dict(zip(unique_classes, class_counts))
     print("[info] unique_classes = {}".format(unique_classes))
-    assert unique_classes[none_class_val] == (num_actions-1)*overlap_length
+    assert unique_classes[none_class_val] == (num_actions - 1) * overlap_length
     return input_sequence_X, input_sequence_Y
+
+
+def plot_demo_input(input_X, input_Y):
+    fig, ax = plt.subplots(6, sharex=True)
+
+    colors = {
+        0: "blue",
+        1: "orange",
+        2: "green",
+        3: "red",
+        69: "black",
+    }
+
+    for count, point in enumerate(zip(input_X, input_Y)):
+        x = point[0]
+        y = point[1]
+        time = count /50 # sample / 50 Hz = seconds
+        for dim in range(6):
+            ax[dim].plot(time, x[dim], marker="o", markersize=1, color=colors[y])
+
+    plt.show()
 
 
 if __name__ == "__main__":
     X, Y = generate_demo_input()
+    plot_demo_input(X, Y)

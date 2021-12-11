@@ -54,7 +54,7 @@ visualization:
 demo_input:
     none_class_val: 69
     action_duration: 500 # 10s * 50Hz
-    overlap_length: 100 # 2 * 50Hz
+    overlap_length: 100
     action_sequences:
     - "./datasets/spar_csv/S10_E0_L.csv" 
     - "./datasets/spar_csv/S10_E1_L.csv" 
