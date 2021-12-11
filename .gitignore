@@ -1,3 +1,4 @@
-data/
+tmp/
+reports/
 logs/
 __pycache__/
