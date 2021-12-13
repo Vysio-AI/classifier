@@ -16,6 +16,7 @@ with open("./config.yaml") as f:
     CONFIGURATIONS = EasyDict(yaml.load(f, yaml.FullLoader))
     DATA_CONFIG = CONFIGURATIONS["data_generation"]
     DEMO_INPUT = CONFIGURATIONS["demo_input"]
+    class_config = DEMO_INPUT["class_config"]
 
 
 def generate_demo_input(action_sequence_path_list=DEMO_INPUT["action_sequences"]):
@@ -87,20 +88,12 @@ def generate_demo_input(action_sequence_path_list=DEMO_INPUT["action_sequences"]
 def plot_demo_input(input_X, input_Y):
     fig, ax = plt.subplots(6, sharex=True)
 
-    colors = {
-        0: "blue",
-        1: "orange",
-        2: "green",
-        3: "red",
-        69: "black",
-    }
-
     for count, point in enumerate(zip(input_X, input_Y)):
         x = point[0]
         y = point[1]
         time = count /50 # sample / 50 Hz = seconds
         for dim in range(6):
-            ax[dim].plot(time, x[dim], marker="o", markersize=1, color=colors[y])
+            ax[dim].plot(time, x[dim], marker="o", markersize=1, color=class_config[str(y)]['color'])
 
     plt.show()
 
