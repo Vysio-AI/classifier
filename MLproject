@@ -1,0 +1,19 @@
+name: shoulder-exercise-classifier
+
+conda_env: conda.yml
+
+entry_points:
+  main:
+    parameters:
+      num_workers: {type: int, default: 1}
+      patience: {type int, default: 3}
+      mode: {type str, default: 'min'}
+      verbose: {type bool, default: True}
+      monitor: {type str, default: 'val_loss'}
+    command: |
+      python src/train.py \
+        --num-workers {num_workers} \
+        --es-patience {patience} \
+        --es-mode {mode} \
+        --es-verbose {verbose} \
+        --es-monitor {monitor}
