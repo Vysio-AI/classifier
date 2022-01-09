@@ -1,4 +1,7 @@
+import typing
+
 import pytorch_lightning as pl
+from torchmetrics.functional import accuracy
 import torch
 import torch.nn as nn
 
@@ -15,25 +18,90 @@ class CRNNModel(pl.LightningModule):
 
         super().__init__()
 
-        # Initialize model architecture
+        # TODO: Initialize model architecture
+        self.crnn = nn.Sequential()
 
-        # self.crnn = model
-        # self.args = kwargs
+        # Define loss function
+        self.loss = nn.CrossEntropyLoss()
 
-    def forward(self, x):
-        pass
+        # Define other model parameters
+        self.lr = kwargs["learning_rate"]
+
+    def forward(self, x: typing.Any) -> typing.Any:
+        """
+        Forward pass through the CRNN model.
+
+        :param x: Input to CRNN model
+
+        :return: Result of CRNN model inference on input
+        """
+
+        classification = self.crnn(x)
+        return classification
 
     def configure_optimizers(self):
-        pass
+        """
+        Choose what optimizer to use in optimization.
+        """
 
-    def training_step(self, batch):
-        pass
+        optimizer = torch.optim.Adam(
+            params = self.crnn.parameters(),
+            lr = self.lr
+        )
 
-    def validation_step(self, batch):
-        pass
+        return optimizer
 
-    def test_step(self, batch):
-        pass
+    def training_step(self, batch: typing.Any) -> typing.Union[torch.Tensor, typing.Dict[str, typing.Any]]:
+        """
+        Compute and return the training loss.
+
+        :param batch: The output of the train Dataloader
+
+        :return: Loss tensor or a dictionary
+        """
+
+        classifications = self.crnn(batch.get("timeseries"))
+        loss = self.loss(classifications, batch.get("label"))
+
+        self.log("train_loss", loss)
+
+        return {"loss": loss}
+
+    def validation_step(self, batch: typing.Any) -> typing.Union[torch.Tensor, typing.Dict[str, typing.Any], None]:
+        """
+        Compute and return the validation loss and accuracy.
+
+        :param batch: The output of the validation Dataloader
+
+        :return: Loss tensor, a dictionary, or None
+        """
+
+        classifications = self.crnn(batch.get("timeseries"))
+        loss = self.loss(classifications, batch.get("label"))
+        _, y_hat = torch.max(classifications, dim=1)
+        acc = accuracy(y_hat, batch.get("label"))
+
+        self.log("val_acc", acc)
+        self.log("val_loss", loss)
+
+        return {"val_loss": loss, "val_acc": acc}
+
+    def test_step(self, batch: typing.Any) -> typing.Union[torch.Tensor, typing.Dict[str, typing.Any], None]:
+        """
+        Compute and return the test accuracy.
+
+        :param batch: The output of the test Dataloader
+
+        :return: Loss tensor, a dictionary, or None
+        """
+
+        classifications = self.crnn(batch.get("timeseries"))
+        _, y_hat = torch.max(classifications, dim=1)
+        acc = accuracy(y_hat, batch.get("label"))
+
+        self.log("test_acc", acc, on_epoch=True)
+
+        return {"test_acc": acc}
 
 # Build the model
 # model = Sequential()

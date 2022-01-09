@@ -5,6 +5,7 @@ conda_env: conda.yml
 entry_points:
   main:
     parameters:
+      learning_rate: {type: float, default: 0.001}
       num_workers: {type: int, default: 1}
       patience: {type int, default: 3}
       mode: {type str, default: 'min'}
@@ -12,6 +13,7 @@ entry_points:
       monitor: {type str, default: 'val_loss'}
     command: |
       python src/train.py \
+        --learning-rate {learning_rate} \
         --num-workers {num_workers} \
         --es-patience {patience} \
         --es-mode {mode} \

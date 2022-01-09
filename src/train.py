@@ -5,12 +5,14 @@ from data_module import ShoulderExerciseDataModule
 import mlflow
 from model import CRNNModel
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 if __name__ == "__main__":
     parser = ArgumentParser(description="PyTorch Category Classifier")
 
+    # General model paramters
+    parser.add_argument("--learning-rate", type=float, help="Learning rate for model optimization")
     parser.add_argument("--num-workers", type=int, help="Number of data loader workers")
 
     # Early stopping parameters
@@ -21,13 +23,16 @@ if __name__ == "__main__":
 
     parser = pl.Trainer.add_argparse_args(parent_parser=parser)
 
-    mlflow.pytorch.autolog()
-
     args = parser.parse_args()
     dict_args = vars(args)
 
+    # Autolog parameters, metrics and artifacts to MLflow
+    mlflow.pytorch.autolog()
+
+    # Initialize CRNN model to train
     model = CRNNModel(**dict_args)
 
+    # Initialize data module
     data_module = ShoulderExerciseDataModule(**dict_args)
 
     early_stopping = EarlyStopping(
