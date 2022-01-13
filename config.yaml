@@ -33,6 +33,7 @@ data_generation:
     - './datasets/spar_csv/S1[0-6]_*.csv'
     validation_csv_file_pattern:
     - './datasets/spar_csv/S1[7-9]_*.csv'
+    test_csv_file_pattern:
     - './datasets/spar_csv/S20_*.csv'
     class_names:
     - "PEL"
