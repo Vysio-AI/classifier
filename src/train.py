@@ -15,6 +15,12 @@ if __name__ == "__main__":
     parser.add_argument("--learning-rate", type=float, help="Learning rate for model optimization")
     parser.add_argument("--num-workers", type=int, help="Number of data loader workers")
 
+    # Dataset paramters
+    parser.add_argument("--window-size", type=int, help="Number of timesteps per window")
+    parser.add_argument("--window-stride", type=int, help="Difference between consequtive windows")
+    parser.add_argument("--data-dir", type=str, help="Location to store dataset samples")
+    parser.add_argument("--batch-size", type=int, help="Training batch size")
+
     # Early stopping parameters
     parser.add_argument("--es-monitor", type=str, help="Early stopping monitor parameter")
     parser.add_argument("--es-mode", type=str, help="Early stopping mode parameter")

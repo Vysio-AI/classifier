@@ -1,9 +1,28 @@
+import pdb
 import typing
 
 import pytorch_lightning as pl
-from torchmetrics.functional import accuracy
 import torch
 import torch.nn as nn
+from torchmetrics.functional import accuracy
+
+
+class BidirectionalLSTM(nn.Module):
+    def __init__(self, nIn, nHidden, nOut):
+        super(BidirectionalLSTM, self).__init__()
+
+        self.rnn = nn.LSTM(nIn, nHidden, bidirectional=True)
+        self.embedding = nn.Linear(nHidden * 2, nOut)
+
+    def forward(self, input):
+        recurrent, _ = self.rnn(input)
+        T, b, h = recurrent.size()
+        t_rec = recurrent.view(T * b, h)
+
+        output = self.embedding(t_rec)  # [T * b, nOut]
+        output = output.view(T, b, -1)
+
+        return output
 
 
 class CRNNModel(pl.LightningModule):
@@ -18,14 +37,42 @@ class CRNNModel(pl.LightningModule):
 
         super().__init__()
 
-        # TODO: Initialize model architecture
-        self.crnn = nn.Sequential()
-
         # Define loss function
         self.loss = nn.CrossEntropyLoss()
 
         # Define other model parameters
-        self.lr = kwargs["learning_rate"]
+        # self.lr = kwargs["learning_rate"]
+
+        # TODO: Initialize model architecture
+        self.cnn = nn.Sequential()
+        # conv1
+        self.cnn.add_module(
+            "conv1", nn.Conv1d(in_channels=6, out_channels=128, kernel_size=7)
+        )
+        self.cnn.add_module("relu1", nn.ReLU(True))
+        self.cnn.add_module("pooling1", nn.MaxPool1d(2))
+        # conv2
+        self.cnn.add_module(
+            "conv2", nn.Conv1d(in_channels=128, out_channels=128, kernel_size=7)
+        )
+        self.cnn.add_module("relu2", nn.ReLU(True))
+        self.cnn.add_module("pooling2", nn.MaxPool1d(2))
+
+        # self.rnn = nn.Sequential(
+        #     BidirectionalLSTM(128, 100, 100), BidirectionalLSTM(100, 100, 7)
+        # )
+        hidden_size = 100
+        num_classes = 7
+
+        self.rnn = nn.LSTM(
+            input_size=128,
+            hidden_size=hidden_size,
+            num_layers=2,
+            batch_first=True,
+            bidirectional=True,
+        )
+        self.fc = nn.Linear(in_features=hidden_size*2, out_features=num_classes)
+        self.relu = nn.ReLU()
 
     def forward(self, x: typing.Any) -> typing.Any:
         """
@@ -36,22 +83,31 @@ class CRNNModel(pl.LightningModule):
         :return: Result of CRNN model inference on input
         """
 
-        classification = self.crnn(x)
-        return classification
+        x_cnn = self.cnn(x)
+        x_permute = x_cnn.permute(0, 2, 1)
+        x_rnn, (hn, cn) = self.rnn(x_permute)
+        output = self.fc(x_rnn[:, -1, :]) # grab the last sequence
+        return output
+        # pdb.set_trace()
+        # hn = hn.view(-1, 100)
+        # x_1 = self.relu(hn)
+        # x_2 = self.fc(x_1)
+        # # return x, x_cnn, x_permute, x_rnn, x_out
+        # # output = self.out(x)
+        # return x_cnn
 
     def configure_optimizers(self):
         """
         Choose what optimizer to use in optimization.
         """
 
-        optimizer = torch.optim.Adam(
-            params = self.crnn.parameters(),
-            lr = self.lr
-        )
+        optimizer = torch.optim.Adam(params=self.crnn.parameters(), lr=self.lr)
 
         return optimizer
 
-    def training_step(self, batch: typing.Any) -> typing.Union[torch.Tensor, typing.Dict[str, typing.Any]]:
+    def training_step(
+        self, batch: typing.Any
+    ) -> typing.Union[torch.Tensor, typing.Dict[str, typing.Any]]:
         """
         Compute and return the training loss.
 
@@ -67,7 +123,9 @@ class CRNNModel(pl.LightningModule):
 
         return {"loss": loss}
 
-    def validation_step(self, batch: typing.Any) -> typing.Union[torch.Tensor, typing.Dict[str, typing.Any], None]:
+    def validation_step(
+        self, batch: typing.Any
+    ) -> typing.Union[torch.Tensor, typing.Dict[str, typing.Any], None]:
         """
         Compute and return the validation loss and accuracy.
 
@@ -86,7 +144,9 @@ class CRNNModel(pl.LightningModule):
 
         return {"val_loss": loss, "val_acc": acc}
 
-    def test_step(self, batch: typing.Any) -> typing.Union[torch.Tensor, typing.Dict[str, typing.Any], None]:
+    def test_step(
+        self, batch: typing.Any
+    ) -> typing.Union[torch.Tensor, typing.Dict[str, typing.Any], None]:
         """
         Compute and return the test accuracy.
 
@@ -102,6 +162,15 @@ class CRNNModel(pl.LightningModule):
         self.log("test_acc", acc, on_epoch=True)
 
         return {"test_acc": acc}
+
+
+if __name__ == "__main__":
+    import pdb
+
+    crnn = CRNNModel()
+    output = crnn(torch.rand(1, 6, 100))
+    pdb.set_trace()
+
 
 # Build the model
 # model = Sequential()
