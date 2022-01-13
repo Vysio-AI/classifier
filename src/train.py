@@ -40,6 +40,8 @@ if __name__ == "__main__":
 
     # Initialize data module
     data_module = ShoulderExerciseDataModule(**dict_args)
+    train_loader = data_module.train_dataloader()
+    val_loader = data_module.val_dataloader()
 
     early_stopping = EarlyStopping(
         monitor=dict_args["es_monitor"],
@@ -56,8 +58,8 @@ if __name__ == "__main__":
         args, callbacks=[early_stopping, checkpoint_callback], gpus=1
     )
 
-    trainer.fit(model, data_module)
-    trainer.test(model, datamodule=data_module)
+    trainer.fit(model, train_loader, val_loader)
+    # trainer.test(model, datamodule=data_module)
 
 # def get_tfrecord_data(data_type: DataType = DataType.TRAIN):
 #     """Generate train/test/validation tf.data.Datasets"""

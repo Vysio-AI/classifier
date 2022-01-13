@@ -41,6 +41,7 @@ class CRNNModel(pl.LightningModule):
         self.loss = nn.CrossEntropyLoss()
 
         # Define other model parameters
+        self.lr = 0.001
         # self.lr = kwargs["learning_rate"]
 
         # TODO: Initialize model architecture
@@ -71,7 +72,7 @@ class CRNNModel(pl.LightningModule):
             batch_first=True,
             bidirectional=True,
         )
-        self.fc = nn.Linear(in_features=hidden_size*2, out_features=num_classes)
+        self.fc = nn.Linear(in_features=hidden_size * 2, out_features=num_classes)
         self.relu = nn.ReLU()
 
     def forward(self, x: typing.Any) -> typing.Any:
@@ -86,8 +87,8 @@ class CRNNModel(pl.LightningModule):
         x_cnn = self.cnn(x)
         x_permute = x_cnn.permute(0, 2, 1)
         x_rnn, (hn, cn) = self.rnn(x_permute)
-        output = self.fc(x_rnn[:, -1, :]) # grab the last sequence
-        return output
+        return self.fc(x_rnn[:, -1, :])  # grab the last sequence
+
         # pdb.set_trace()
         # hn = hn.view(-1, 100)
         # x_1 = self.relu(hn)
@@ -116,8 +117,16 @@ class CRNNModel(pl.LightningModule):
         :return: Loss tensor or a dictionary
         """
 
-        classifications = self.crnn(batch.get("timeseries"))
-        loss = self.loss(classifications, batch.get("label"))
+        x = batch.get("timeseries")
+        y = batch.get("label")
+
+        # forward
+        x_hat = self.cnn(x)
+        x_hat = x_hat.permute(0, 2, 1)
+        x_hat, _ = self.rnn(x_hat)
+        predictions = self.fc(x_hat[:, -1, :])
+
+        loss = self.loss(predictions, y)
 
         self.log("train_loss", loss)
 
@@ -133,11 +142,18 @@ class CRNNModel(pl.LightningModule):
 
         :return: Loss tensor, a dictionary, or None
         """
+        x = batch.get("timeseries")
+        y = batch.get("label")
 
-        classifications = self.crnn(batch.get("timeseries"))
-        loss = self.loss(classifications, batch.get("label"))
-        _, y_hat = torch.max(classifications, dim=1)
-        acc = accuracy(y_hat, batch.get("label"))
+        # forward
+        x_hat = self.cnn(x)
+        x_hat = x_hat.permute(0, 2, 1)
+        x_hat, _ = self.rnn(x_hat)
+        predictions = self.fc(x_hat[:, -1, :])
+
+        loss = self.loss(predictions, y)
+        _, y_hat = torch.max(predictions, dim=1)
+        acc = accuracy(y_hat, y)
 
         self.log("val_acc", acc)
         self.log("val_loss", loss)
@@ -155,22 +171,22 @@ class CRNNModel(pl.LightningModule):
         :return: Loss tensor, a dictionary, or None
         """
 
-        classifications = self.crnn(batch.get("timeseries"))
-        _, y_hat = torch.max(classifications, dim=1)
-        acc = accuracy(y_hat, batch.get("label"))
+        x = batch.get("timeseries")
+        y = batch.get("label")
+
+        # forward
+        x_hat = self.cnn(x)
+        x_hat = x_hat.permute(0, 2, 1)
+        x_hat, _ = self.rnn(x_hat)
+        predictions = self.fc(x_hat[:, -1, :])
+
+        loss = self.loss(predictions, y)
+        _, y_hat = torch.max(predictions, dim=1)
+        acc = accuracy(y_hat, y)
 
         self.log("test_acc", acc, on_epoch=True)
 
         return {"test_acc": acc}
-
-
-if __name__ == "__main__":
-    import pdb
-
-    crnn = CRNNModel()
-    output = crnn(torch.rand(1, 6, 100))
-    pdb.set_trace()
-
 
 # Build the model
 # model = Sequential()
