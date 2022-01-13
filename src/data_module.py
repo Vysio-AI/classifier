@@ -125,7 +125,11 @@ class SparDataset(Dataset):
         # store x and y as tensors
         x_tensor = torch.from_numpy(csv_data.to_numpy(dtype="float32"))
         label = torch.from_numpy(y_onehot)
-        return x_tensor, label
+        return {
+            "timeseries": x_tensor,
+            "label": label,
+            "class": self.classes[np.argmax(label)],
+        }
 
 
 class ShoulderExerciseDataModule(pl.LightningDataModule):
@@ -178,7 +182,10 @@ if __name__ == "__main__":
     )
     data_loader = DataLoader(dataset, batch_size=128)
 
-    for x, y in data_loader:
-        print("Batch of x has shape: ", x.shape)
-        print("Batch of y has shape: ", y.shape)
+    for item in data_loader:
+        # import pdb; pdb.set_trace()
+        print('x shape: ', item.get('timeseries').shape)
+        print('y shape: ', item.get('label').shape)
+        print('sample_0 label: ', item.get('label')[0])
+        print('sample_0 class: ', item.get('class')[0])
         break
