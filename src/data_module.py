@@ -151,7 +151,7 @@ class ShoulderExerciseDataModule(pl.LightningDataModule):
             window_size=self.window_size,
             window_stride=self.window_stride,
         )
-        return DataLoader(train_dataset, batch_size=self.batch_size)
+        return DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
 
     def val_dataloader(self):
         val_dataset = SparDataset(
@@ -160,7 +160,7 @@ class ShoulderExerciseDataModule(pl.LightningDataModule):
             window_size=self.window_size,
             window_stride=self.window_stride,
         )
-        return DataLoader(val_dataset, batch_size=self.batch_size)
+        return DataLoader(val_dataset, batch_size=self.batch_size, shuffle=True)
 
     def test_dataloader(self):
         test_dataset = SparDataset(
@@ -169,7 +169,7 @@ class ShoulderExerciseDataModule(pl.LightningDataModule):
             window_size=self.window_size,
             window_stride=self.window_stride,
         )
-        return DataLoader(test_dataset, batch_size=self.batch_size)
+        return DataLoader(test_dataset, batch_size=self.batch_size, shuffle=True)
 
 
 if __name__ == "__main__":

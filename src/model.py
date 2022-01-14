@@ -126,7 +126,7 @@ class CRNNModel(pl.LightningModule):
         x_hat, _ = self.rnn(x_hat)
         predictions = self.fc(x_hat[:, -1, :])
 
-        loss = self.loss(predictions, y)
+        loss = self.loss(predictions, y.float())
 
         self.log("train_loss", loss)
 
@@ -151,8 +151,9 @@ class CRNNModel(pl.LightningModule):
         x_hat, _ = self.rnn(x_hat)
         predictions = self.fc(x_hat[:, -1, :])
 
-        loss = self.loss(predictions, y)
+        loss = self.loss(predictions, y.float())
         _, y_hat = torch.max(predictions, dim=1)
+        _, y = torch.max(y, dim=1)
         acc = accuracy(y_hat, y)
 
         self.log("val_acc", acc)
@@ -182,6 +183,7 @@ class CRNNModel(pl.LightningModule):
 
         loss = self.loss(predictions, y)
         _, y_hat = torch.max(predictions, dim=1)
+        _, y = torch.max(y, dim=1)
         acc = accuracy(y_hat, y)
 
         self.log("test_acc", acc, on_epoch=True)
