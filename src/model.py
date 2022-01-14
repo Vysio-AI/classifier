@@ -84,7 +84,7 @@ class CRNNModel(pl.LightningModule):
         :return: Result of CRNN model inference on input
         """
 
-        x_cnn = self.cnn(x)
+        x_cnn = self.cnn(x.permute(0,2,1))
         x_permute = x_cnn.permute(0, 2, 1)
         x_rnn, (hn, cn) = self.rnn(x_permute)
         return self.fc(x_rnn[:, -1, :])  # grab the last sequence
@@ -102,12 +102,12 @@ class CRNNModel(pl.LightningModule):
         Choose what optimizer to use in optimization.
         """
 
-        optimizer = torch.optim.Adam(params=self.crnn.parameters(), lr=self.lr)
+        optimizer = torch.optim.Adam(params=self.cnn.parameters(), lr=self.lr)
 
         return optimizer
 
     def training_step(
-        self, batch: typing.Any
+            self, batch: typing.Any, batch_idx: int
     ) -> typing.Union[torch.Tensor, typing.Dict[str, typing.Any]]:
         """
         Compute and return the training loss.
@@ -121,7 +121,7 @@ class CRNNModel(pl.LightningModule):
         y = batch.get("label")
 
         # forward
-        x_hat = self.cnn(x)
+        x_hat = self.cnn(x.permute(0, 2, 1))
         x_hat = x_hat.permute(0, 2, 1)
         x_hat, _ = self.rnn(x_hat)
         predictions = self.fc(x_hat[:, -1, :])
@@ -133,7 +133,7 @@ class CRNNModel(pl.LightningModule):
         return {"loss": loss}
 
     def validation_step(
-        self, batch: typing.Any
+            self, batch: typing.Any, batch_idx: int
     ) -> typing.Union[torch.Tensor, typing.Dict[str, typing.Any], None]:
         """
         Compute and return the validation loss and accuracy.
@@ -146,7 +146,7 @@ class CRNNModel(pl.LightningModule):
         y = batch.get("label")
 
         # forward
-        x_hat = self.cnn(x)
+        x_hat = self.cnn(x.permute(0, 2, 1))
         x_hat = x_hat.permute(0, 2, 1)
         x_hat, _ = self.rnn(x_hat)
         predictions = self.fc(x_hat[:, -1, :])
