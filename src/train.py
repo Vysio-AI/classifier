@@ -8,6 +8,9 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
+# deterministic
+pl.seed_everything(42)
+
 if __name__ == "__main__":
     parser = ArgumentParser(description="PyTorch Category Classifier")
 
@@ -53,7 +56,7 @@ if __name__ == "__main__":
     )
 
     trainer = pl.Trainer.from_argparse_args(
-        args, callbacks=[early_stopping, checkpoint_callback], gpus=1
+        args, callbacks=[early_stopping, checkpoint_callback], gpus=1, deterministic=True
     )
 
     trainer.fit(model, data_module)

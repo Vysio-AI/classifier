@@ -38,6 +38,8 @@ class SparDataset(Dataset):
         self.data = []
         self.classes = ["PEL", "ABD", "FEL", "IR", "ER", "TRAP", "ROW"]
         self.csv_data_columns = ["ax", "ay", "az", "wx", "wy", "wz"]
+        self.window_size = window_size
+        self.window_stride = window_stride
 
         # Grab the list of file patterns for relevant csv files
         csv_file_patterns = DATA_CONFIG[f"{data_type.value}_csv_file_pattern"]
@@ -73,14 +75,14 @@ class SparDataset(Dataset):
             # Number of sequences expected to be generated
             # Incomplete sequences are ignored
             number_of_sequences = math.floor(
-                (csv_data.shape[0] - window_size) / window_stride + 1
+                (csv_data.shape[0] - self.window_size) / self.window_stride + 1
             )
 
             # Store the generated sequences from the sliding window
             sequence_list = []
             for count in range(number_of_sequences):
-                start = count * window_stride
-                end = count * window_stride + window_size
+                start = count * self.window_stride
+                end = count * self.window_stride + self.window_size
                 sequence = csv_data[start:end].to_numpy(dtype="float32")
                 sequence_list.append(sequence)
 
@@ -91,8 +93,8 @@ class SparDataset(Dataset):
                         csv_directory_name,
                         csv_filename,
                         count,
-                        window_size,
-                        window_stride,
+                        self.window_size,
+                        self.window_stride,
                     ),
                 )
 
@@ -103,14 +105,13 @@ class SparDataset(Dataset):
 
             # Assert the overlaps in the sequence list match
             sequence_list = np.array(sequence_list)
-            overlap = window_size - window_stride
+            overlap = self.window_size - self.window_stride
             if overlap > 0:
                 for idx in range(sequence_list.shape[0] - 1):
                     assert np.all(
                         sequence_list[idx, -overlap:]
                         == sequence_list[idx + 1, :overlap]
                     )
-        print(f"[info] created {len(self.data)} windows")
 
     def __len__(self):
         return len(self.data)
@@ -151,6 +152,7 @@ class ShoulderExerciseDataModule(pl.LightningDataModule):
             window_size=self.window_size,
             window_stride=self.window_stride,
         )
+        print("[info] sourced {} training windows".format(len(train_dataset)))
         return DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
 
     def val_dataloader(self):
@@ -160,6 +162,7 @@ class ShoulderExerciseDataModule(pl.LightningDataModule):
             window_size=self.window_size,
             window_stride=self.window_stride,
         )
+        print("[info] sourced {} validation windows".format(len(val_dataset)))
         return DataLoader(val_dataset, batch_size=self.batch_size, shuffle=True)
 
     def test_dataloader(self):
@@ -169,6 +172,7 @@ class ShoulderExerciseDataModule(pl.LightningDataModule):
             window_size=self.window_size,
             window_stride=self.window_stride,
         )
+        print("[info] sourced {} test windows".format(len(test_dataset)))
         return DataLoader(test_dataset, batch_size=self.batch_size, shuffle=True)
 
 
@@ -184,8 +188,8 @@ if __name__ == "__main__":
 
     for item in data_loader:
         # import pdb; pdb.set_trace()
-        print('x shape: ', item.get('timeseries').shape)
-        print('y shape: ', item.get('label').shape)
-        print('sample_0 label: ', item.get('label')[0])
-        print('sample_0 class: ', item.get('class')[0])
+        print("x shape: ", item.get("timeseries").shape)
+        print("y shape: ", item.get("label").shape)
+        print("sample_0 label: ", item.get("label")[0])
+        print("sample_0 class: ", item.get("class")[0])
         break
