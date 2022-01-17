@@ -24,6 +24,7 @@ class CRNNModel(pl.LightningModule):
 
         # Define other model parameters
         self.lr = kwargs["learning_rate"]
+        self.lstm_dropout = kwargs['lstm_dropout']
         self.lstm_hidden_size = 100
         self.num_classes = 7
 
@@ -48,6 +49,7 @@ class CRNNModel(pl.LightningModule):
             num_layers=2,
             batch_first=True,
             bidirectional=True,
+            dropout = self.lstm_dropout
         )
         # out
         self.fc = nn.Linear(

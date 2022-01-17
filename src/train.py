@@ -16,6 +16,7 @@ if __name__ == "__main__":
 
     # General model paramters
     parser.add_argument("--learning-rate", type=float, help="Learning rate for model optimization")
+    parser.add_argument("--lstm-dropout", type=float, help="Dropout for for lstm layers")
     parser.add_argument("--num-workers", type=int, help="Number of data loader workers")
 
     # Dataset paramters
