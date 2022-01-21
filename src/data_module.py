@@ -144,6 +144,7 @@ class ShoulderExerciseDataModule(pl.LightningDataModule):
         self.window_stride = self.args["window_stride"]
         self.data_dir = self.args["data_dir"]
         self.batch_size = self.args["batch_size"]
+        self.num_workers = self.args["num_workers"]
 
     def train_dataloader(self):
         train_dataset = SparDataset(
@@ -153,7 +154,12 @@ class ShoulderExerciseDataModule(pl.LightningDataModule):
             window_stride=self.window_stride,
         )
         print("[info] sourced {} training windows".format(len(train_dataset)))
-        return DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(
+            train_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            shuffle=True,
+        )
 
     def val_dataloader(self):
         val_dataset = SparDataset(
@@ -163,7 +169,11 @@ class ShoulderExerciseDataModule(pl.LightningDataModule):
             window_stride=self.window_stride,
         )
         print("[info] sourced {} validation windows".format(len(val_dataset)))
-        return DataLoader(val_dataset, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(
+            val_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+        )
 
     def test_dataloader(self):
         test_dataset = SparDataset(
@@ -173,7 +183,11 @@ class ShoulderExerciseDataModule(pl.LightningDataModule):
             window_stride=self.window_stride,
         )
         print("[info] sourced {} test windows".format(len(test_dataset)))
-        return DataLoader(test_dataset, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(
+            test_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+        )
 
 
 if __name__ == "__main__":

@@ -90,8 +90,8 @@ class CRNNModel(pl.LightningModule):
         :return: Loss tensor or a dictionary
         """
 
-        x = batch.get("timeseries")
-        y = batch.get("label")
+        x = batch.get("timeseries").cuda()
+        y = batch.get("label").cuda()
 
         # forward
         x_hat = self.cnn(x.permute(0, 2, 1))
