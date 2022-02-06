@@ -1,4 +1,6 @@
 tmp/
+mlruns/
+lightning_logs/
 env/
 reports/
 logs/
