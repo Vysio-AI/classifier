@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 import os
+import torch
 
 from data_module import ShoulderExerciseDataModule
 import mlflow
@@ -40,7 +41,8 @@ if __name__ == "__main__":
     mlflow.pytorch.autolog()
 
     # Initialize CRNN model to train
-    model = CRNNModel(**dict_args).to(device='cuda')
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model = CRNNModel(**dict_args).to(device=device)
 
     # Initialize data module
     data_module = ShoulderExerciseDataModule(**dict_args)

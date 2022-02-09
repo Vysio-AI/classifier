@@ -75,7 +75,8 @@ class CRNNModel(pl.LightningModule):
         Choose what optimizer to use in optimization.
         """
 
-        optimizer = torch.optim.Adam(params=self.cnn.parameters(), lr=self.lr)
+        # TODO should be more than just cnn parameters
+        optimizer = torch.optim.Adam(params=self.parameters(), lr=self.lr)
 
         return optimizer
 
