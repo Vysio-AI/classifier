@@ -11,7 +11,10 @@ entry_points:
       patience: {type int, default: 3}
       window_size: {type: int, default: 100}
       window_stride: {type: int, default: 50}
-      data_dir: {type str, default: './tmp/spardata'}
+      /* data_dir: {type str, default: './tmp/spardata'} */
+      data_dir: {type str, default: './tmp/utd_mhad_data'}
+      /* dataset: {type str, default: 'spar'} */
+      dataset: {type str, default: 'utd_mhad'}
       batch_size: {type: int, default: 64}
       mode: {type str, default: 'min'}
       verbose: {type bool, default: True}
@@ -25,6 +28,7 @@ entry_points:
         --window-stride {window_stride} \
         --batch-size {batch_size} \
         --data-dir {data_dir} \
+        --dataset {dataset} \
         --es-patience {patience} \
         --es-mode {mode} \
         --es-verbose {verbose} \

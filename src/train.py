@@ -24,6 +24,7 @@ if __name__ == "__main__":
     parser.add_argument("--window-size", type=int, help="Number of timesteps per window")
     parser.add_argument("--window-stride", type=int, help="Difference between consequtive windows")
     parser.add_argument("--data-dir", type=str, help="Location to store dataset samples")
+    parser.add_argument("--dataset", type=str, help="Dataset name")
     parser.add_argument("--batch-size", type=int, help="Training batch size")
 
     # Early stopping parameters
