@@ -33,6 +33,7 @@ data_generation:
     - './datasets/spar_csv/S1[0-6]_*.csv'
     validation_csv_file_pattern:
     - './datasets/spar_csv/S1[7-9]_*.csv'
+    test_csv_file_pattern:
     - './datasets/spar_csv/S20_*.csv'
     class_names:
     - "PEL"
@@ -44,11 +45,48 @@ data_generation:
     - "ROW"
 evaluation:
     log_dir: "./reports/logs/"
-    weights_file: "reports/logs/logs_2021_11_18_00_14_40/checkpoint_12.tf"
+    weights_file: "reports/logs/logs_2021_11_26_01_07_28/checkpoint_8.tf"
 visualization:
-    view_columns: False
-    view_trajectories: True
+    view_columns: True
+    view_trajectories: False
     csv_file_patterns: 
     - './datasets/spar_csv/S10_E[0-6]_L.csv'
     num_view_steps: 1000
+demo_input:
+    none_class_val: 69
+    action_duration: 250 # 10s * 50Hz
+    overlap_length: 50 # 2s * 50Hz
+    action_sequences:
+    - "./datasets/spar_csv/S19_E0_L.csv" 
+    - "./datasets/spar_csv/S19_E1_L.csv" 
+    - "./datasets/spar_csv/S19_E2_L.csv" 
+    - "./datasets/spar_csv/S19_E3_L.csv" 
+    - "./datasets/spar_csv/S19_E4_L.csv" 
+    - "./datasets/spar_csv/S19_E5_L.csv" 
+    - "./datasets/spar_csv/S19_E6_L.csv" 
+    class_config:
+        "0":
+            label: "PEL"
+            color: "royalblue"
+        "1":
+            label: "ABD"
+            color: "darkorchid"
+        "2":
+            label: "FEL"
+            color: "limegreen"
+        "3":
+            label: "IR"
+            color: "tomato"
+        "4":
+            label: "ER"
+            color: "orange"
+        "5":
+            label: "TRAP"
+            color: "darkturquoise"
+        "6":
+            label: "ROW"
+            color: "green"
+        "69":
+            label: "NULL"
+            color: "grey"
 
