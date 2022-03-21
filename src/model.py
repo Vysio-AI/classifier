@@ -14,12 +14,13 @@ class CRNNModel(pl.LightningModule):
         self.batch_size = kwargs.get("batch_size")
         self.lr = kwargs.get("learning_rate")
         self.lstm_dropout = kwargs.get("lstm_dropout")
-        self.num_classes = kwargs.get("num_classes")
+        self.num_classes = kwargs["num_classes"]
         self.lstm_hidden_size = kwargs["hidden_size"]
         self.lstm_layers = kwargs["lstm_layers"]
         self.input_shape = kwargs["input_shape"]
-        self.device = kwargs["device"]
+        self.weight_decay = kwargs["weight_decay"]
         self.save_hyperparameters()
+        self.accuracy_top_k = kwargs.get("accuracy_top_k")
 
         # must be defined for logging computational graph
         self.example_input_array = torch.rand((1, *self.input_shape))
@@ -93,7 +94,19 @@ class CRNNModel(pl.LightningModule):
         Choose what optimizer to use in optimization.
         """
 
-        optimizer = torch.optim.Adam(params=self.cnn.parameters(), lr=self.lr)
+        optimizer = torch.optim.Adam(
+            params=self.parameters(),
+            weight_decay=self.weight_decay,
+            lr=self.lr,
+        )
+
+        # optimizer = torch.optim.SGD(
+        #     self.parameters(),
+        #     weight_decay=self.weight_decay,
+        #     lr=self.lr,
+        #     momentum=0.9,
+        #     nesterov=True,
+        # )
 
         return optimizer
 
@@ -106,17 +119,14 @@ class CRNNModel(pl.LightningModule):
         :return: Loss tensor or a dictionary
         """
 
-        x = batch.get("timeseries").to(self.device)
-        y_gt = batch.get("label").to(self.device)
-
-        assert batch.shape[1:] == self.input_shape
+        x = batch.get("timeseries").cuda()
+        y_gt = batch.get("label").cuda()
 
         # forward
         y_pred = self.forward(x)
-        y_pred_softmax = self.get_class(y_pred)
 
         loss = self.loss(y_pred, y_gt.float())
-        acc = accuracy(y_pred_softmax, y_gt)
+        acc = accuracy(y_pred, y_gt)
 
         self.log("train_loss", loss)
         self.log("train_acc", acc)
@@ -131,17 +141,14 @@ class CRNNModel(pl.LightningModule):
 
         :return: Loss tensor, a dictionary, or None
         """
-        x = batch.get("timeseries").to(self.device)
-        y_gt = batch.get("label").to(self.device)
-
-        assert batch.shape[1:] == self.input_shape
+        x = batch.get("timeseries").cuda()
+        y_gt = batch.get("label").cuda()
 
         # forward
         y_pred = self.forward(x)
-        y_pred_softmax = self.get_class(y_pred)
 
         loss = self.loss(y_pred, y_gt.float())
-        acc = accuracy(y_pred_softmax, y_gt)
+        acc = accuracy(y_pred, y_gt)
 
         self.log("val_loss", loss)
         self.log("val_acc", acc)

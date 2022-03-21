@@ -16,25 +16,28 @@ if __name__ == "__main__":
     parser = ArgumentParser(description="PyTorch Category Classifier")
 
     # General model paramters
-    parser.add_argument("--learning_rate", type=float)
-    parser.add_argument("--lstm_dropout", type=float)
+    parser.add_argument("--learning_rate", type=float, default=0.001)
+    parser.add_argument("--weight_decay", type=float, default=0.01)
+    parser.add_argument("--lstm_dropout", type=float, default=0.25)
     parser.add_argument("--lstm_layers", type=int, default=2)
     parser.add_argument("--lstm_hidden_size", type=float, default=100)
-    parser.add_argument("--num_workers", type=int)
+    parser.add_argument("--num_workers", type=int, default=6)
     parser.add_argument("--num_classes", type=int, default=7)
+    parser.add_argument("--accuracy_top_k", type=int, default=1)
+    parser.add_argument("--hidden_size", type=int, default=100)
 
     # Dataset paramters
     parser.add_argument("--input_shape", type=tuple, default=(6, 100))
-    parser.add_argument("--window_size", type=int)
-    parser.add_argument("--window_stride", type=int)
-    parser.add_argument("--dataloader_source", type=str, default="./tmp/spardata")
-    parser.add_argument("--dataloader_temp", type=str, default="./datasets/spar_csv")
-    parser.add_argument("--batch_size", type=int)
+    parser.add_argument("--window_size", type=int, default=100)
+    parser.add_argument("--window_stride", type=int, default=25)
+    parser.add_argument("--dataloader_source", type=str, default="./datasets")
+    parser.add_argument("--dataloader_temp", type=str, default="./tmp/spardata")
+    parser.add_argument("--batch_size", type=int, default=128)
 
     # Early stopping parameters
     parser.add_argument("--es_monitor", type=str, default="val_loss")
     parser.add_argument("--es_mode", type=str, default="min")
-    parser.add_argument("--es_patience", type=int)
+    parser.add_argument("--es_patience", type=int, default=7)
 
     # Other parameters
     parser.add_argument("--device", default="cuda", choices=["cuda", "cpu"])
@@ -50,10 +53,10 @@ if __name__ == "__main__":
     dict_args["load_csv_file_patterns"] = {
         "train": [
             "**/spar_csv/S[1-9]_*.csv",
-            "**/spar_csv/S1[0-6]_*.csv",
+            "**/spar_csv/S1[0-8]_*.csv",
         ],
         "validation": [
-            "**/spar_csv/S1[7-9]_*.csv",
+            "**/spar_csv/S1[8-9]_*.csv",
             "**/spar_csv/S20_*.csv",
         ],
     }
@@ -61,7 +64,7 @@ if __name__ == "__main__":
     pl.seed_everything(dict_args["seed"])
 
     # Initialize CRNN model to train
-    model = CRNNModel(**dict_args).to(device=dict_args["device"])
+    model = CRNNModel(**dict_args)
 
     # Initialize data module
     data_module = ShoulderExerciseDataModule(**dict_args)
@@ -91,7 +94,7 @@ if __name__ == "__main__":
         name="lightning_logs",
         log_graph=True,
     )
-    trainer = pl.Trainer.from_argparse_args(
+    trainer = pl.Trainer(
         callbacks=[early_stopping_callback, checkpoint_callback],
         gpus=1 if dict_args["device"] == "cuda" else 0,
         deterministic=True,

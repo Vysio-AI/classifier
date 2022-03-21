@@ -2,6 +2,7 @@ import json
 import math
 import os
 import pathlib
+import pdb
 from enum import Enum
 from glob import glob
 
@@ -190,10 +191,10 @@ if __name__ == "__main__":
     dataset = SparDataset(
         LearningPhase.VALIDATION,
         dataloader_temp="./tmp/spardata",
-        dataloader_source="./datasets/spar_csv/",
+        dataloader_source="./datasets",
         window_size=100,
         window_stride=50,
-        file_patterns=["./**/spar_csv/S20_*.csv"],
+        file_patterns={"validation": ["**/spar_csv/S20_*.csv"]},
     )
     data_loader = DataLoader(dataset, batch_size=128)
 
