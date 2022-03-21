@@ -2,6 +2,7 @@ import json
 import math
 import os
 import pathlib
+import pdb
 from enum import Enum
 from glob import glob
 
@@ -13,11 +14,6 @@ import yaml
 from easydict import EasyDict
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
-
-# Store configuration file data in global object
-with open("./config.yaml") as f:
-    CONFIGURATIONS = EasyDict(yaml.load(f, yaml.FullLoader))
-    DATA_CONFIG = CONFIGURATIONS["data_generation"]
 
 
 class LearningPhase(Enum):
@@ -31,7 +27,15 @@ class LearningPhase(Enum):
 class SparDataset(Dataset):
     """Spar Dataset"""
 
-    def __init__(self, data_type: LearningPhase, data_dir, window_size, window_stride):
+    def __init__(
+        self,
+        data_type: LearningPhase,
+        dataloader_source,
+        dataloader_temp,
+        window_size,
+        window_stride,
+        file_patterns,
+    ):
 
         assert isinstance(data_type, LearningPhase)
 
@@ -42,17 +46,18 @@ class SparDataset(Dataset):
         self.window_stride = window_stride
 
         # Grab the list of file patterns for relevant csv files
-        csv_file_patterns = DATA_CONFIG[f"{data_type.value}_csv_file_pattern"]
+        csv_file_patterns = file_patterns[data_type.value]
         assert isinstance(csv_file_patterns, list)
         csv_file_list = []
         # Generate a list of all matching csv file paths
         for pattern in csv_file_patterns:
-            csv_file_list.extend(glob(pattern, recursive=True))
+            csv_full_pattern = os.path.join(dataloader_source, pattern)
+            csv_file_list.extend(glob(csv_full_pattern, recursive=True))
 
         print(f"[info] sourcing {len(csv_file_list)} {data_type.value} csv files")
-        print(f"[info] storing windows to {data_dir}")
+        print(f"[info] storing windows to {dataloader_temp}")
         # Checks if destination folder already exists since it will
-        os.makedirs(data_dir, exist_ok=True)
+        os.makedirs(dataloader_temp, exist_ok=True)
 
         # store paths for generated data windows
         for csv_path in tqdm(csv_file_list):
@@ -88,7 +93,7 @@ class SparDataset(Dataset):
 
                 # Create the window data file path
                 csv_window_path = os.path.join(
-                    data_dir,
+                    dataloader_temp,
                     "{}_{}_sequence_{}_size_{}_shift_{}.tfrecord".format(
                         csv_directory_name,
                         csv_filename,
@@ -139,19 +144,22 @@ class ShoulderExerciseDataModule(pl.LightningDataModule):
     def __init__(self, **kwargs):
         super().__init__()
 
-        self.args = kwargs
-        self.window_size = self.args["window_size"]
-        self.window_stride = self.args["window_stride"]
-        self.data_dir = self.args["data_dir"]
-        self.batch_size = self.args["batch_size"]
-        self.num_workers = self.args["num_workers"]
+        self.window_size = kwargs["window_size"]
+        self.window_stride = kwargs["window_stride"]
+        self.dataloader_source = kwargs["dataloader_source"]
+        self.dataloader_temp = kwargs["dataloader_temp"]
+        self.batch_size = kwargs["batch_size"]
+        self.num_workers = kwargs["num_workers"]
+        self.file_patterns = kwargs["load_csv_file_patterns"]
 
     def train_dataloader(self):
         train_dataset = SparDataset(
             LearningPhase.TRAIN,
-            data_dir=self.data_dir,
+            dataloader_source=self.dataloader_source,
+            dataloader_temp=self.dataloader_temp,
             window_size=self.window_size,
             window_stride=self.window_stride,
+            file_patterns=self.file_patterns,
         )
         print("[info] sourced {} training windows".format(len(train_dataset)))
         return DataLoader(
@@ -164,27 +172,15 @@ class ShoulderExerciseDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         val_dataset = SparDataset(
             LearningPhase.VALIDATION,
-            data_dir=self.data_dir,
+            dataloader_source=self.dataloader_source,
+            dataloader_temp=self.dataloader_temp,
             window_size=self.window_size,
             window_stride=self.window_stride,
+            file_patterns=self.file_patterns,
         )
         print("[info] sourced {} validation windows".format(len(val_dataset)))
         return DataLoader(
             val_dataset,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-        )
-
-    def test_dataloader(self):
-        test_dataset = SparDataset(
-            LearningPhase.TEST,
-            data_dir=self.data_dir,
-            window_size=self.window_size,
-            window_stride=self.window_stride,
-        )
-        print("[info] sourced {} test windows".format(len(test_dataset)))
-        return DataLoader(
-            test_dataset,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
         )
@@ -194,9 +190,11 @@ if __name__ == "__main__":
 
     dataset = SparDataset(
         LearningPhase.VALIDATION,
-        data_dir="./tmp/spardata",
+        dataloader_temp="./tmp/spardata",
+        dataloader_source="./datasets",
         window_size=100,
         window_stride=50,
+        file_patterns={"validation": ["**/spar_csv/S20_*.csv"]},
     )
     data_loader = DataLoader(dataset, batch_size=128)
 

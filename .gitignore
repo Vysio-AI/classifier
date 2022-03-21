@@ -3,3 +3,5 @@ env/
 reports/
 logs/
 **/__pycache__/
+**/lightning_logs/
+**/mlruns/
