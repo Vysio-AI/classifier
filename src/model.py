@@ -3,7 +3,7 @@ import typing
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-from torchmetrics.functional import accuracy
+import torchmetrics
 
 
 class CRNNModel(pl.LightningModule):
@@ -15,12 +15,23 @@ class CRNNModel(pl.LightningModule):
         self.lr = kwargs.get("learning_rate")
         self.lstm_dropout = kwargs.get("lstm_dropout")
         self.num_classes = kwargs["num_classes"]
-        self.lstm_hidden_size = kwargs["hidden_size"]
+        self.lstm_hidden_size = kwargs["lstm_hidden_size"]
         self.lstm_layers = kwargs["lstm_layers"]
         self.input_shape = kwargs["input_shape"]
         self.weight_decay = kwargs["weight_decay"]
         self.save_hyperparameters()
         self.accuracy_top_k = kwargs.get("accuracy_top_k")
+
+        # add validation metrics
+        self.train_acc = torchmetrics.Accuracy(top_k=self.accuracy_top_k)
+        self.train_f1 = torchmetrics.F1(
+            num_classes=self.num_classes, average="weighted"
+        )
+        self.train_auroc = torchmetrics.AUROC(num_classes=self.num_classes)
+        # add validation metrics
+        self.val_acc = torchmetrics.Accuracy(top_k=self.accuracy_top_k)
+        self.val_f1 = torchmetrics.F1(num_classes=self.num_classes, average="weighted")
+        self.val_auroc = torchmetrics.AUROC(num_classes=self.num_classes)
 
         # must be defined for logging computational graph
         self.example_input_array = torch.rand((1, *self.input_shape))
@@ -121,15 +132,22 @@ class CRNNModel(pl.LightningModule):
 
         x = batch.get("timeseries").cuda()
         y_gt = batch.get("label").cuda()
+        y_class = batch.get("class").cuda()
 
         # forward
         y_pred = self.forward(x)
 
         loss = self.loss(y_pred, y_gt.float())
-        acc = accuracy(y_pred, y_gt)
+
+        # accumulate and return metrics for logging
+        acc = self.train_acc(y_pred, y_class)
+        f1 = self.train_f1(y_pred, y_class)
+        auroc = self.train_auroc(y_pred, y_class)
 
         self.log("train_loss", loss)
         self.log("train_acc", acc)
+        self.log("train_f1", f1)
+        self.log("train_auroc", auroc)
 
         return loss
 
@@ -143,14 +161,51 @@ class CRNNModel(pl.LightningModule):
         """
         x = batch.get("timeseries").cuda()
         y_gt = batch.get("label").cuda()
+        y_class = batch.get("class").cuda()
 
         # forward
         y_pred = self.forward(x)
 
         loss = self.loss(y_pred, y_gt.float())
-        acc = accuracy(y_pred, y_gt)
+        # accumulate and return metrics for logging
+        acc = self.val_acc(y_pred, y_class)
+        f1 = self.val_f1(y_pred, y_class)
+        auroc = self.val_auroc(y_pred, y_class)
 
         self.log("val_loss", loss)
         self.log("val_acc", acc)
-
+        self.log("val_f1", f1)
+        self.log("val_auroc", auroc)
         return loss
+
+    def validation_epoch_end(self, val_step_outputs):
+        # compute metrics
+        val_acc = self.val_acc.compute()
+        val_f1 = self.val_f1.compute()
+        val_auroc = self.val_auroc.compute()
+
+        # log metrics
+        self.log("epoch_val_accuracy", val_acc)
+        self.log("epoch_val_f1", val_f1)
+        self.log("epoch_val_auroc", val_auroc)
+
+        # reset all metrics
+        self.val_acc.reset()
+        self.val_f1.reset()
+        self.val_auroc.reset()
+
+    def training_epoch_end(self, train_step_outputs):
+        # compute metrics
+        train_acc = self.train_acc.compute()
+        train_f1 = self.train_f1.compute()
+        train_auroc = self.train_auroc.compute()
+
+        # log metrics
+        self.log("epoch_train_accuracy", train_acc)
+        self.log("epoch_train_f1", train_f1)
+        self.log("epoch_train_auroc", train_auroc)
+
+        # reset all metrics
+        self.train_acc.reset()
+        self.train_f1.reset()
+        self.train_auroc.reset()

@@ -13,7 +13,10 @@ import torch
 import yaml
 from easydict import EasyDict
 from torch.utils.data import DataLoader, Dataset
+from torchvision import transforms
 from tqdm import tqdm
+
+from data_transforms import Jitter
 
 
 class LearningPhase(Enum):
@@ -35,6 +38,7 @@ class SparDataset(Dataset):
         window_size,
         window_stride,
         file_patterns,
+        transform,
     ):
 
         assert isinstance(data_type, LearningPhase)
@@ -44,6 +48,7 @@ class SparDataset(Dataset):
         self.csv_data_columns = ["ax", "ay", "az", "wx", "wy", "wz"]
         self.window_size = window_size
         self.window_stride = window_stride
+        self.transform = transform
 
         # Grab the list of file patterns for relevant csv files
         csv_file_patterns = file_patterns[data_type.value]
@@ -131,10 +136,14 @@ class SparDataset(Dataset):
         # store x and y as tensors
         x_tensor = torch.from_numpy(csv_data.to_numpy(dtype="float32"))
         label = torch.from_numpy(y_onehot)
+
+        if self.transform:
+            x_tensor = self.transform(x_tensor)
+
         return {
             "timeseries": x_tensor,
             "label": label,
-            "class": self.classes[np.argmax(label)],
+            "class": torch.argmax(label),
         }
 
 
@@ -151,6 +160,9 @@ class ShoulderExerciseDataModule(pl.LightningDataModule):
         self.batch_size = kwargs["batch_size"]
         self.num_workers = kwargs["num_workers"]
         self.file_patterns = kwargs["load_csv_file_patterns"]
+        self.jitter_range = kwargs["jitter_range"]
+
+        self.data_transforms = transforms.Compose([Jitter(self.jitter_range)])
 
     def train_dataloader(self):
         train_dataset = SparDataset(
@@ -160,6 +172,7 @@ class ShoulderExerciseDataModule(pl.LightningDataModule):
             window_size=self.window_size,
             window_stride=self.window_stride,
             file_patterns=self.file_patterns,
+            transform=self.data_transforms,
         )
         print("[info] sourced {} training windows".format(len(train_dataset)))
         return DataLoader(
@@ -177,6 +190,7 @@ class ShoulderExerciseDataModule(pl.LightningDataModule):
             window_size=self.window_size,
             window_stride=self.window_stride,
             file_patterns=self.file_patterns,
+            transform=None,
         )
         print("[info] sourced {} validation windows".format(len(val_dataset)))
         return DataLoader(
@@ -195,6 +209,7 @@ if __name__ == "__main__":
         window_size=100,
         window_stride=50,
         file_patterns={"validation": ["**/spar_csv/S20_*.csv"]},
+        transform=transforms.Compose([Jitter(0.03)]),
     )
     data_loader = DataLoader(dataset, batch_size=128)
 
