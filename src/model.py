@@ -1,6 +1,11 @@
 import typing
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import pytorch_lightning as pl
+import seaborn as sn
+import sklearn.metrics as skm
 import torch
 import torch.nn as nn
 import torchmetrics
@@ -30,6 +35,9 @@ class CRNNModel(pl.LightningModule):
         self.val_acc = torchmetrics.Accuracy(top_k=self.accuracy_top_k)
         self.val_f1 = torchmetrics.F1(num_classes=self.num_classes)
         self.val_auroc = torchmetrics.AUROC(num_classes=self.num_classes)
+        # confusion matrix logging stats
+        self.total_y_pred = []
+        self.total_y_class = []
 
         # must be defined for logging computational graph
         self.example_input_array = torch.rand((1, self.channel_size, 50))
@@ -192,6 +200,11 @@ class CRNNModel(pl.LightningModule):
         f1 = self.val_f1(y_pred, y_class)
         auroc = self.val_auroc(y_pred, y_class)
 
+        # confusion matrix
+        self.total_y_class.extend(y_class.tolist())
+        y_pred_argmax = torch.argmax(y_pred, dim=1)
+        self.total_y_pred.extend(y_pred_argmax.tolist())
+
         self.log("val/loss", loss)
         self.log("val/acc", acc)
         self.log("val/f1", f1)
@@ -204,15 +217,29 @@ class CRNNModel(pl.LightningModule):
         val_f1 = self.val_f1.compute()
         val_auroc = self.val_auroc.compute()
 
+        # confusion matrix
+        confusion_matrix = skm.confusion_matrix(
+            self.total_y_class, self.total_y_pred, normalize="all"
+        )
+        df_cm = pd.DataFrame(confusion_matrix)
+
+        plt.figure(figsize=(12, 7))
+        cf_matrix_figure = sn.heatmap(df_cm, annot=True).get_figure()
+
         # log metrics
         self.log("epoch_val_accuracy", val_acc)
         self.log("epoch_val_f1", val_f1)
         self.log("epoch_val_auroc", val_auroc)
+        self.logger.experiment.add_figure(
+            "Confusion matrix", cf_matrix_figure, self.current_epoch
+        )
 
         # reset all metrics
         self.val_acc.reset()
         self.val_f1.reset()
         self.val_auroc.reset()
+        self.total_y_pred = []
+        self.total_y_class = []
 
     def training_epoch_end(self, train_step_outputs):
         # compute metrics

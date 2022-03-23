@@ -31,8 +31,9 @@ if __name__ == "__main__":
     parser.add_argument("--window_stride", type=int, default=15)
     parser.add_argument("--dataloader_source", type=str, default="./datasets")
     parser.add_argument("--dataloader_temp", type=str, default="./tmp/spardata")
-    parser.add_argument("--batch_size", type=int, default=128)
+    parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--jitter_range", type=float, default=0.01)
+    parser.add_argument("--skip_nth_step", type=int, default=0)
 
     # Early stopping parameters
     parser.add_argument("--es_monitor", type=str, default="val/loss")
