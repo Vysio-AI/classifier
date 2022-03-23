@@ -219,7 +219,7 @@ class CRNNModel(pl.LightningModule):
 
         # confusion matrix
         confusion_matrix = skm.confusion_matrix(
-            self.total_y_class, self.total_y_pred, normalize="all"
+            self.total_y_class, self.total_y_pred, normalize="true"
         )
         df_cm = pd.DataFrame(confusion_matrix)
 
