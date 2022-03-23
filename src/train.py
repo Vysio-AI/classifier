@@ -54,7 +54,7 @@ if __name__ == "__main__":
     dict_args["load_csv_file_patterns"] = {
         "train": [
             "**/spar_csv/S[1-9]_*.csv",
-            "**/spar_csv/S1[0-8]_*.csv",
+            "**/spar_csv/S1[0-7]_*.csv",
         ],
         "validation": [
             "**/spar_csv/S1[8-9]_*.csv",
