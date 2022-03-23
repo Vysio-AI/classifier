@@ -20,22 +20,22 @@ if __name__ == "__main__":
     parser.add_argument("--weight_decay", type=float, default=0.01)
     parser.add_argument("--lstm_dropout", type=float, default=0.1)
     parser.add_argument("--lstm_layers", type=int, default=2)
-    parser.add_argument("--lstm_hidden_size", type=int, default=100)
+    parser.add_argument("--lstm_hidden_size", type=int, default=50)
     parser.add_argument("--num_workers", type=int, default=9)
     parser.add_argument("--num_classes", type=int, default=7)
     parser.add_argument("--accuracy_top_k", type=int, default=1)
 
     # Dataset paramters
-    parser.add_argument("--input_shape", type=tuple, default=(6, 100))
-    parser.add_argument("--window_size", type=int, default=100)
-    parser.add_argument("--window_stride", type=int, default=50)
+    parser.add_argument("--channel_size", type=int, default=6)
+    parser.add_argument("--window_size", type=int, default=50)
+    parser.add_argument("--window_stride", type=int, default=25)
     parser.add_argument("--dataloader_source", type=str, default="./datasets")
     parser.add_argument("--dataloader_temp", type=str, default="./tmp/spardata")
-    parser.add_argument("--batch_size", type=int, default=64)
-    parser.add_argument("--jitter_range", type=float, default=0)
+    parser.add_argument("--batch_size", type=int, default=128)
+    parser.add_argument("--jitter_range", type=float, default=0.01)
 
     # Early stopping parameters
-    parser.add_argument("--es_monitor", type=str, default="val_loss")
+    parser.add_argument("--es_monitor", type=str, default="val/loss")
     parser.add_argument("--es_mode", type=str, default="min")
     parser.add_argument("--es_patience", type=int, default=7)
 
@@ -93,6 +93,7 @@ if __name__ == "__main__":
         version=now,
         name="lightning_logs",
         log_graph=True,
+        default_hp_metric=False,
     )
     trainer = pl.Trainer(
         callbacks=[early_stopping_callback, checkpoint_callback],

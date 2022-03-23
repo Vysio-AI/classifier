@@ -49,6 +49,7 @@ class SparDataset(Dataset):
         self.window_size = window_size
         self.window_stride = window_stride
         self.transform = transform
+        self.class_distribution = dict([(class_type, 0) for class_type in self.classes])
 
         # Grab the list of file patterns for relevant csv files
         csv_file_patterns = file_patterns[data_type.value]
@@ -112,6 +113,8 @@ class SparDataset(Dataset):
                 csv_data[start:end].to_csv(csv_window_path)
                 # Store file path and label
                 self.data.append([csv_window_path, y_onehot])
+                # Increment class distribution counter
+                self.class_distribution[self.classes[y_class]] += 1
 
             # Assert the overlaps in the sequence list match
             sequence_list = np.array(sequence_list)
@@ -122,6 +125,7 @@ class SparDataset(Dataset):
                         sequence_list[idx, -overlap:]
                         == sequence_list[idx + 1, :overlap]
                     )
+        print(f"[p] {data_type.value} class_distribution:\n{self.class_distribution}")
 
     def __len__(self):
         return len(self.data)
