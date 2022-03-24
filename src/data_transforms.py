@@ -43,8 +43,8 @@ class Rotate(object):
         # choose an index for one of the methods
         rand_int = torch.randint(0, high=len(self.rotation_methods) + 1, size=(1,))[0]
 
-        # choice of 0 does nothing
-        if rand_int > 0:
+        # one of the options is to do nothing
+        if rand_int < len(self.rotation_methods):
             sample = self.rotation_methods[rand_int](sample)
 
         return sample
