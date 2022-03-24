@@ -1,9 +1,9 @@
 import datetime
-import yaml
 import os
 from argparse import ArgumentParser
 
 import pytorch_lightning as pl
+import yaml
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -28,12 +28,13 @@ if __name__ == "__main__":
     # Dataset paramters
     parser.add_argument("--channel_size", type=int, default=6)
     parser.add_argument("--window_size", type=int, default=100)
-    parser.add_argument("--window_stride", type=int, default=10)
+    parser.add_argument("--window_stride", type=int, default=50)
     parser.add_argument("--dataloader_source", type=str, default="./datasets")
     parser.add_argument("--dataloader_temp", type=str, default="./tmp/spardata")
     parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--jitter_range", type=float, default=0)
     parser.add_argument("--skip_nth_step", type=int, default=0)
+    parser.add_argument("--apply_rotations", type=bool, default=False)
 
     # Early stopping parameters
     parser.add_argument("--es_monitor", type=str, default="val/loss")

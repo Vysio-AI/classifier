@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from tqdm import tqdm
 
-from data_transforms import DownSample, Jitter
+from data_transforms import DownSample, Jitter, Rotate
 
 
 class LearningPhase(Enum):
@@ -183,10 +183,21 @@ class ShoulderExerciseDataModule(pl.LightningDataModule):
         self.jitter_range = kwargs["jitter_range"]
         self.skip_nth_step = kwargs["skip_nth_step"]
         self.num_classes = kwargs["num_classes"]
+        self.apply_rotations = kwargs["apply_rotations"]
 
-        self.data_transforms = transforms.Compose(
-            [Jitter(self.jitter_range), DownSample(self.skip_nth_step)]
-        )
+        # define data transformations
+        transforms_list = []
+        if self.jitter_range > 0:
+            transforms_list.append(Jitter(self.jitter_range))
+        if self.skip_nth_step > 0:
+            transforms_list.append(DownSample(self.skip_nth_step))
+        if self.apply_rotations:
+            transforms_list.append(Rotate())
+
+        if len(transforms_list) > 0:
+            self.data_transforms = transforms.Compose(transforms_list)
+        else:
+            self.data_transforms = None
 
     def train_dataloader(self):
         train_dataset = SparDataset(
