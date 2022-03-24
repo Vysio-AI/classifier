@@ -39,13 +39,21 @@ class SparDataset(Dataset):
         window_stride,
         file_patterns,
         transform,
+        num_classes,
     ):
 
         assert isinstance(data_type, LearningPhase)
 
         self.data = []
-        # self.classes = ["PEL", "ABD", "FEL", "IR", "ER", "TRAP", "ROW"]
-        self.classes = ["PEL", "ABD", "FEL", "IR", "TRAP", "ROW"]
+        self.num_classes = num_classes
+
+        if self.num_classes == 7:
+            self.classes = ["PEL", "ABD", "FEL", "IR", "ER", "TRAP", "ROW"]
+        elif self.num_classes == 6:
+            self.classes = ["PEL", "ABD", "FEL", "IR", "TRAP", "ROW"]
+        else:
+            raise Exception("number of classes isn't 6 or 7")
+
         self.csv_data_columns = ["ax", "ay", "az", "wx", "wy", "wz"]
         self.window_size = window_size
         self.window_stride = window_stride
@@ -61,6 +69,7 @@ class SparDataset(Dataset):
             csv_full_pattern = os.path.join(dataloader_source, pattern)
             csv_file_list.extend(glob(csv_full_pattern, recursive=True))
 
+        print(f"[p] {self.num_classes} classes: {self.classes}")
         print(f"[info] sourcing {len(csv_file_list)} {data_type.value} csv files")
         print(f"[info] storing windows to {dataloader_temp}")
         # Checks if destination folder already exists since it will
@@ -72,7 +81,10 @@ class SparDataset(Dataset):
             csv_directory_name = pathlib.Path(csv_path).parent.stem
             # Grab class from csv filename of format 'S1_E0_R'
             y_class = int(csv_filename.split("_")[1][1])
-            y_class = y_class - 1 if y_class >= 4 else y_class
+
+            if self.num_classes == 6:
+                # Combine IR and ER into IR class
+                y_class = y_class - 1 if y_class >= 4 else y_class
 
             # Generate the appropriate onehot label
             y_onehot = np.zeros(len(self.classes), int)
@@ -170,6 +182,7 @@ class ShoulderExerciseDataModule(pl.LightningDataModule):
         self.file_patterns = kwargs["load_csv_file_patterns"]
         self.jitter_range = kwargs["jitter_range"]
         self.skip_nth_step = kwargs["skip_nth_step"]
+        self.num_classes = kwargs["num_classes"]
 
         self.data_transforms = transforms.Compose(
             [Jitter(self.jitter_range), DownSample(self.skip_nth_step)]
@@ -184,6 +197,7 @@ class ShoulderExerciseDataModule(pl.LightningDataModule):
             window_stride=self.window_stride,
             file_patterns=self.file_patterns,
             transform=self.data_transforms,
+            num_classes=self.num_classes,
         )
         print("[info] sourced {} training windows".format(len(train_dataset)))
         return DataLoader(
@@ -202,6 +216,7 @@ class ShoulderExerciseDataModule(pl.LightningDataModule):
             window_stride=self.window_stride,
             file_patterns=self.file_patterns,
             transform=None,
+            num_classes=self.num_classes,
         )
         print("[info] sourced {} validation windows".format(len(val_dataset)))
         return DataLoader(
@@ -221,6 +236,7 @@ if __name__ == "__main__":
         window_stride=50,
         file_patterns={"validation": ["**/spar_csv/S20_*.csv"]},
         transform=transforms.Compose([Jitter(0.03), DownSample(0)]),
+        num_classes=7,
     )
     data_loader = DataLoader(dataset, batch_size=128)
 

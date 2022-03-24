@@ -1,4 +1,5 @@
 import datetime
+import yaml
 import os
 from argparse import ArgumentParser
 
@@ -19,14 +20,14 @@ if __name__ == "__main__":
     parser.add_argument("--weight_decay", type=float, default=0.01)
     parser.add_argument("--lstm_dropout", type=float, default=0.1)
     parser.add_argument("--lstm_layers", type=int, default=2)
-    parser.add_argument("--lstm_hidden_size", type=int, default=50)
+    parser.add_argument("--lstm_hidden_size", type=int, default=100)
     parser.add_argument("--num_workers", type=int, default=9)
     parser.add_argument("--num_classes", type=int, default=6)
     parser.add_argument("--accuracy_top_k", type=int, default=1)
 
     # Dataset paramters
     parser.add_argument("--channel_size", type=int, default=6)
-    parser.add_argument("--window_size", type=int, default=50)
+    parser.add_argument("--window_size", type=int, default=100)
     parser.add_argument("--window_stride", type=int, default=10)
     parser.add_argument("--dataloader_source", type=str, default="./datasets")
     parser.add_argument("--dataloader_temp", type=str, default="./tmp/spardata")
@@ -43,7 +44,6 @@ if __name__ == "__main__":
     parser.add_argument("--device", default="cuda", choices=["cuda", "cpu"])
     parser.add_argument("--seed", default=42, type=int)
     parser.add_argument("--logdir", default="./", type=str)
-    parser.add_argument("--save_model", default=True, type=bool)
 
     parser = pl.Trainer.add_argparse_args(parent_parser=parser)
 
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     # Trainer: initialize training behaviour
     profiler = SimpleProfiler()
     now = datetime.datetime.now().strftime("%m_%a_%H_%M_%S")
-    logfile_name = "lightning_logs" if not dict_args["save_model"] else "save_logs"
+    logfile_name = "lightning_logs"
     logger = TensorBoardLogger(
         save_dir=dict_args["logdir"],
         version=now,
@@ -107,12 +107,3 @@ if __name__ == "__main__":
 
     # Trainer: train model
     trainer.fit(model, data_module)
-
-    if dict_args["save_model"]:
-        # Retreive the best checkpoints
-        best_model = model.load_from_checkpoint(checkpoint_callback.best_model_path)
-        model_save_path = os.path.join(
-            dict_args["logdir"], logfile_name, now, f"model_{now}.onnx"
-        )
-        best_model.eval()  # set the model to inference mode
-        best_model.to_onnx(model_save_path, export_params=True)
