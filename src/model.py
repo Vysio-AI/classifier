@@ -26,21 +26,22 @@ class CRNNModel(pl.LightningModule):
         self.weight_decay = kwargs["weight_decay"]
         self.save_hyperparameters()
         self.accuracy_top_k = kwargs.get("accuracy_top_k")
+        self.window_size = kwargs["window_size"]
 
         # add validation metrics
-        self.train_acc = torchmetrics.Accuracy(top_k=self.accuracy_top_k)
-        self.train_f1 = torchmetrics.F1(num_classes=self.num_classes)
-        self.train_auroc = torchmetrics.AUROC(num_classes=self.num_classes)
+        self.train_acc = torchmetrics.Accuracy(top_k=self.accuracy_top_k, average='macro', num_classes=self.num_classes)
+        self.train_f1 = torchmetrics.F1(num_classes=self.num_classes, average='macro')
+        self.train_auroc = torchmetrics.AUROC(num_classes=self.num_classes, average='macro')
         # add validation metrics
-        self.val_acc = torchmetrics.Accuracy(top_k=self.accuracy_top_k)
-        self.val_f1 = torchmetrics.F1(num_classes=self.num_classes)
-        self.val_auroc = torchmetrics.AUROC(num_classes=self.num_classes)
+        self.val_acc = torchmetrics.Accuracy(top_k=self.accuracy_top_k, average='macro', num_classes=self.num_classes)
+        self.val_f1 = torchmetrics.F1(num_classes=self.num_classes, average='macro')
+        self.val_auroc = torchmetrics.AUROC(num_classes=self.num_classes, average='macro')
         # confusion matrix logging stats
         self.total_y_pred = []
         self.total_y_class = []
 
         # must be defined for logging computational graph
-        self.example_input_array = torch.rand((1, self.channel_size, 50))
+        self.example_input_array = torch.rand((1, self.channel_size, self.window_size))
 
         # Define loss function
         self.loss = nn.CrossEntropyLoss()
@@ -72,10 +73,7 @@ class CRNNModel(pl.LightningModule):
         self.sm = nn.Softmax(dim=1)
 
     def forward(self, x: typing.Any) -> typing.Any:
-        if x.shape[1] != self.channel_size:
-            x = x.permute(0, 2, 1)
-
-        assert x.shape[1] == self.channel_size
+        # expected input shape (batch, channel, steps)
 
         x = self.conv1(x)
         x = self.relu1(x)
@@ -98,7 +96,7 @@ class CRNNModel(pl.LightningModule):
         classification = torch.argmax(softmax, dim=1)
         return classification
 
-    def spark_predict(self, x):
+    def predict(self, x):
         # create batch dimension
         x = torch.unsqueeze(x, dim=0)
 
@@ -219,7 +217,10 @@ class CRNNModel(pl.LightningModule):
 
         # confusion matrix
         confusion_matrix = skm.confusion_matrix(
-            self.total_y_class, self.total_y_pred, normalize="true"
+            self.total_y_class,
+            self.total_y_pred,
+            normalize="true",
+            labels=list(range(self.num_classes)),
         )
         df_cm = pd.DataFrame(confusion_matrix)
 

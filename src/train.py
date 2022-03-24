@@ -2,7 +2,6 @@ import datetime
 import os
 from argparse import ArgumentParser
 
-import mlflow
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -22,7 +21,7 @@ if __name__ == "__main__":
     parser.add_argument("--lstm_layers", type=int, default=2)
     parser.add_argument("--lstm_hidden_size", type=int, default=50)
     parser.add_argument("--num_workers", type=int, default=9)
-    parser.add_argument("--num_classes", type=int, default=7)
+    parser.add_argument("--num_classes", type=int, default=6)
     parser.add_argument("--accuracy_top_k", type=int, default=1)
 
     # Dataset paramters
@@ -42,8 +41,9 @@ if __name__ == "__main__":
 
     # Other parameters
     parser.add_argument("--device", default="cuda", choices=["cuda", "cpu"])
-    parser.add_argument("--seed", default=102, type=int)
+    parser.add_argument("--seed", default=42, type=int)
     parser.add_argument("--logdir", default="./", type=str)
+    parser.add_argument("--save_model", default=True, type=bool)
 
     parser = pl.Trainer.add_argparse_args(parent_parser=parser)
 
@@ -89,10 +89,11 @@ if __name__ == "__main__":
     # Trainer: initialize training behaviour
     profiler = SimpleProfiler()
     now = datetime.datetime.now().strftime("%m_%a_%H_%M_%S")
+    logfile_name = "lightning_logs" if not dict_args["save_model"] else "save_logs"
     logger = TensorBoardLogger(
         save_dir=dict_args["logdir"],
         version=now,
-        name="lightning_logs",
+        name=logfile_name,
         log_graph=True,
         default_hp_metric=False,
     )
@@ -106,3 +107,12 @@ if __name__ == "__main__":
 
     # Trainer: train model
     trainer.fit(model, data_module)
+
+    if dict_args["save_model"]:
+        # Retreive the best checkpoints
+        best_model = model.load_from_checkpoint(checkpoint_callback.best_model_path)
+        model_save_path = os.path.join(
+            dict_args["logdir"], logfile_name, now, f"model_{now}.onnx"
+        )
+        best_model.eval()  # set the model to inference mode
+        best_model.to_onnx(model_save_path, export_params=True)

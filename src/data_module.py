@@ -44,7 +44,8 @@ class SparDataset(Dataset):
         assert isinstance(data_type, LearningPhase)
 
         self.data = []
-        self.classes = ["PEL", "ABD", "FEL", "IR", "ER", "TRAP", "ROW"]
+        # self.classes = ["PEL", "ABD", "FEL", "IR", "ER", "TRAP", "ROW"]
+        self.classes = ["PEL", "ABD", "FEL", "IR", "TRAP", "ROW"]
         self.csv_data_columns = ["ax", "ay", "az", "wx", "wy", "wz"]
         self.window_size = window_size
         self.window_stride = window_stride
@@ -71,6 +72,7 @@ class SparDataset(Dataset):
             csv_directory_name = pathlib.Path(csv_path).parent.stem
             # Grab class from csv filename of format 'S1_E0_R'
             y_class = int(csv_filename.split("_")[1][1])
+            y_class = y_class - 1 if y_class >= 4 else y_class
 
             # Generate the appropriate onehot label
             y_onehot = np.zeros(len(self.classes), int)
@@ -138,7 +140,9 @@ class SparDataset(Dataset):
         # extract the relevant columns
         csv_data = csv_data[self.csv_data_columns]
         # store x and y as tensors
-        x_tensor = torch.from_numpy(csv_data.to_numpy(dtype="float32"))
+        # tranpose data to (features, steps)
+        csv_data_np = np.transpose(csv_data.to_numpy(dtype="float32"), (1, 0))
+        x_tensor = torch.from_numpy(csv_data_np)
         label = torch.from_numpy(y_onehot)
 
         if self.transform:
